@@ -159,15 +159,33 @@
 
 ## Conversation 11: Cary Daniel Campos
 - **Subscriber ID:** 26027889133540488
-- **Last Message:** 6d ago
-- **Preview:** "Disculpa, en qué estado te encuentras?"
+- **Gender:** Male
+- **Language:** Spanish
+- **Location:** Nuevo León, Monterrey
+- **Status:** Unassigned
+- **Channel:** Facebook
+
+### Messages:
+1. **[Thursday, 11:26] (User):** "Hola"
+2. **[Thursday, 11:26] (User):** "Disculpa, en qué estado te encuentras?"
+3. **[Thursday, 15:49] (Agent):** "Hola buenas tardes"
+4. **[Thursday, 15:49] (Agent):** "Estamos en el estado de Nuevo León en Monterrey"
+
+**Notes:** Asked about location. No case details shared yet. Agent responded with office location.
 
 ---
 
 ## Conversation 12: Arturo Bustos
 - **Subscriber ID:** 662827525
-- **Last Message:** 7d ago
-- **Preview:** "Hola 👋 Gracias por comunicarte con Ala Legal. Somos un despacho enfocado exclusivamente en la representación de familias de personas fallecidas en accidentes automovilísticos y de víctimas con lesiones graves o permanentes..."
+- **Instagram:** @arturobustosg
+- **Status:** Unassigned
+- **Channel:** Instagram
+
+### Messages:
+1. **[3 Mar 2026, 12:26] (User):** "Hola buenas tardes. Dejé mi coche estacionado en un estacionamiento de paga de autoservicio y lo encontré dañado. Ustedes pueden llevar ese caso?"
+2. **[4 Mar 2026, 10:19] (Bot):** "Hola 👋 Gracias por comunicarte con Ala Legal. Somos un despacho enfocado exclusivamente en la representación de familias de personas fallecidas en accidentes automovilísticos y de víctimas con lesiones graves o permanentes..."
+
+**Notes:** Parking lot damage case - car damaged while parked in paid supermarket parking. **DECLINED** - Auto-response sent (firm only handles injury/death cases, not property damage).
 
 ---
 
