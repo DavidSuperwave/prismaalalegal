@@ -1,0 +1,66 @@
+version: "3.8"
+
+services:
+  openclaw:
+    image: ghcr.io/openclaw/openclaw:2026.3.7
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3100:3100"
+    volumes:
+      - openclaw_data:/home/node/.openclaw
+      - ./workspace:/home/node/.openclaw/workspace
+      - ./openclaw.json:/home/node/.openclaw/openclaw.json
+    env_file: .env
+    environment:
+      - NODE_ENV=production
+    networks:
+      - superwave
+
+  manychat-bridge:
+    build: ./bridge
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3300:3300"
+    env_file: .env
+    depends_on:
+      - openclaw
+    networks:
+      - superwave
+
+  # web: Phase 2 - uncomment after building the web app
+  #   build: ./web
+  #   restart: unless-stopped
+  #   ports:
+  #     - "127.0.0.1:3000:3000"
+  #   env_file: .env
+  #   depends_on:
+  #     - openclaw
+  #   networks:
+  #     - superwave
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    env_file: .env
+    networks:
+      - superwave
+    depends_on:
+      - manychat-bridge
+      # - web
+
+volumes:
+  openclaw_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  superwave:
+    driver: bridge

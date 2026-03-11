@@ -1,0 +1,13 @@
+{$DOMAIN} {
+    handle /manychat/* {
+        reverse_proxy manychat-bridge:3300
+    }
+    
+    handle /api/* {
+        reverse_proxy web:3000
+    }
+    
+    handle {
+        reverse_proxy web:3000
+    }
+}
