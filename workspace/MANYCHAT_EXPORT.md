@@ -213,10 +213,45 @@
 
 ---
 
-## Conversation 14: Beatríz Saldaña
+## Conversation 14: Beatríz Saldaña ⭐ QUALIFIED LEAD
 - **Subscriber ID:** 26071979929129808
-- **Last Message:** 7d ago
-- **Preview:** "Buena noche"
+- **Gender:** Female
+- **Language:** Spanish
+- **Phone:** 81 1249 1200 (Monterrey area)
+- **Status:** Unassigned
+- **Channel:** Facebook
+- **Priority:** HIGH
+- **Type:** Fatal Accident / Wrongful Death
+
+### Messages:
+1. **(User):** "Tendrá manera de conseguir la carpeta de investigación?"
+2. **(User):** "Yo creo que si"
+3. **(Agent):** "Vaya juntando todos los documentos y correos electrónicos o mensajes que tenga con axxa"
+4. **(User):** "Pero no se como? La solicito en la fiscaliza?"
+5. **(Agent):** "Si tiene los datos de la carpeta yo le puedo hacer el escrito de solicitud"
+6. **(User):** "Ellos borraron los mensajes"
+7. **(User):** "Ok voy a conseguilos"
+8. **(User):** "Requiere la póliza del seguro?"
+9. **(Agent):** "Si"
+10. **(Agent):** "Y actas de matrimonio, nacimiento y defunción"
+11. **(Agent):** "Comprobante de ingreso si tenía para yo hacer el cálculo de indemnización"
+12. **(User):** "Si tengo todo eso"
+13. **(Agent):** "Bien, podemos ir juntando todo"
+14. **(Agent):** "Me permite su número y mañana se lo envío en pdf por WhatsApp por favor"
+15. **(User):** "81 1249 1200"
+16. **(Agent):** "Gracias... Mañana le contacto y le envío la información"
+17. **(User):** "Muchas gracias por su atención"
+18. **(Agent):** "Buenas noches"
+19. **(User):** "Buena noche"
+20. **(Agent):** "Gracias a usted"
+
+**Notes:** ⭐ **QUALIFIED LEAD - ACTIVE CASE**
+- Wrongful death case involving AXXA insurance
+- Needs investigation file (carpeta de investigación)
+- Has all required documents: insurance policy, marriage/birth/death certificates, income proof
+- Agent scheduled follow-up via WhatsApp
+- Phone: 81 1249 1200 (Monterrey area code)
+- **Status:** Documents being collected, follow-up pending
 
 ---
 
