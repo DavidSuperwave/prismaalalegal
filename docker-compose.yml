@@ -24,19 +24,22 @@ services:
     env_file: .env
     depends_on:
       - openclaw
+      - web
     networks:
       - superwave
 
-  # web: Phase 2 - uncomment after building the web app
-  #   build: ./web
-  #   restart: unless-stopped
-  #   ports:
-  #     - "127.0.0.1:3000:3000"
-  #   env_file: .env
-  #   depends_on:
-  #     - openclaw
-  #   networks:
-  #     - superwave
+  web:
+    build: ./web
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - ./web/data:/app/data
+    env_file: .env
+    depends_on:
+      - openclaw
+    networks:
+      - superwave
 
   caddy:
     image: caddy:2-alpine
@@ -54,7 +57,7 @@ services:
       - superwave
     depends_on:
       - manychat-bridge
-      # - web
+      - web
 
 volumes:
   openclaw_data:

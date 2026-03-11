@@ -20,6 +20,7 @@ const {
   TELEGRAM_LEADS_CHAT_ID,
   AGENT_SLUG = 'prismaalalegal',
   OPENCLAW_GATEWAY_URL = 'http://openclaw:3100',
+  WEB_APP_INTERNAL_URL = 'http://web:3000',
   PORT = 3300,
 } = process.env;
 
@@ -64,6 +65,25 @@ app.post('/manychat/webhook', async (req, res) => {
     const { subscriber, message } = req.body;
     if (!subscriber || !message) {
       return res.status(400).json({ error: 'Missing subscriber or message' });
+    }
+
+    // Prefer the new Phase 2 web app so CRM and inbox stay in sync.
+    try {
+      const webResponse = await fetch(`${WEB_APP_INTERNAL_URL}/api/webhooks/manychat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-webhook-secret': webhookSecret,
+        },
+        body: JSON.stringify(req.body),
+      });
+
+      if (webResponse.ok) {
+        const payload = await webResponse.json();
+        return res.json(payload);
+      }
+    } catch (forwardError) {
+      console.warn('Web app webhook unavailable, using legacy bridge flow:', forwardError.message);
     }
 
     const contactName = subscriber.name || 'Unknown';

@@ -1,0 +1,117 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 255 255 255;
+  --foreground: 28 25 23;
+  --card: 255 255 255;
+  --muted: 245 245 244;
+  --muted-foreground: 120 113 108;
+  --border: 231 229 228;
+  --ring: 59 130 246;
+}
+
+* {
+  border-color: rgb(var(--border));
+}
+
+html {
+  height: 100%;
+}
+
+body {
+  min-height: 100%;
+  color: rgb(var(--foreground));
+  background: rgb(var(--background));
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+@layer base {
+  h1,
+  h2,
+  h3,
+  h4 {
+    color: rgb(var(--foreground));
+  }
+
+  button,
+  input,
+  textarea {
+    outline: none;
+  }
+}
+
+@keyframes wave-shimmer {
+  0% {
+    background-position: -200% center;
+  }
+
+  100% {
+    background-position: 200% center;
+  }
+}
+
+@layer components {
+  .ascii-banner {
+    font-family: "SF Mono", "Fira Code", monospace;
+    white-space: pre;
+    line-height: 1.15;
+    font-size: clamp(0.35rem, 1vw, 0.8rem);
+    background: linear-gradient(
+      90deg,
+      #1e3a5f 0%,
+      #2563eb 25%,
+      #60a5fa 50%,
+      #2563eb 75%,
+      #1e3a5f 100%
+    );
+    background-size: 200% 100%;
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: wave-shimmer 2.5s ease-in-out infinite;
+  }
+
+  .glass-card {
+    backdrop-filter: blur(12px);
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    box-shadow: 0 8px 32px rgba(59, 130, 246, 0.15);
+  }
+
+  .prose-chat {
+    max-width: none;
+  }
+
+  .prose-chat p,
+  .prose-chat ul,
+  .prose-chat ol,
+  .prose-chat pre {
+    margin: 0.5rem 0;
+  }
+
+  .prose-chat pre {
+    overflow-x: auto;
+    border-radius: 0.75rem;
+    background: #0f172a;
+    color: #f8fafc;
+    padding: 0.75rem;
+  }
+
+  .prose-chat code {
+    border-radius: 0.375rem;
+    background: #f5f5f4;
+    padding: 0.125rem 0.25rem;
+  }
+
+  .prose-chat pre code {
+    background: transparent;
+    padding: 0;
+  }
+
+  .prose-chat a {
+    color: #2563eb;
+    text-decoration: underline;
+  }
+}
