@@ -9,7 +9,7 @@ services:
     volumes:
       - openclaw_data:/home/node/.openclaw
       - ./workspace:/home/node/.openclaw/workspace
-      - ./openclaw.json:/home/node/.openclaw/openclaw.json
+      # Config now copied via init script instead of bind mount to avoid file lock issues
     env_file: .env
     environment:
       - NODE_ENV=production
