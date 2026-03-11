@@ -87,8 +87,16 @@
 
 ## Conversation 4: Elia Soriano Jn
 - **Subscriber ID:** 34160822006897450
-- **Last Message:** 1d ago
-- **Preview:** "Buenos días"
+- **Gender:** Female
+- **Language:** Spanish
+- **Status:** Unassigned
+- **Channel:** Facebook
+
+### Messages:
+1. **[Tuesday, 06:24] (User):** "Buenos días"
+2. **[Tuesday, 07:37] (Agent):** "Hola qué tal buenos días"
+
+**Notes:** Simple greeting. No case details shared yet. Agent should follow up.
 
 ---
 
@@ -127,10 +135,25 @@
 
 ---
 
-## Conversation 10: Estrella luna
+## Conversation 10: Estrella luna ⭐ QUALIFIED LEAD
 - **Subscriber ID:** 965948082
-- **Last Message:** 6d ago
-- **Preview:** "A mi hijo lo atropellaron crizando una carretera federal pero hay esc y tiendas fue en Mérida carretera Mérida progreso enfrente de la universidad el estudia y trabaja y el pedito dice que el es culpable ,que el que atropellaro no tuvo la culpa"
+- **Instagram:** @estrella_martz1
+- **Status:** Unassigned
+- **Channel:** Instagram
+- **Priority:** HIGH
+- **Type:** Vehicle Accident / Personal Injury
+
+### Messages:
+1. **[Thursday, 12:38] (User):** "Acesoria"
+2. **[Thursday, 12:38] (User):** "A mi hijo lo atropellaron crizando una carretera federal pero hay esc y tiendas fue en Mérida carretera Mérida progreso enfrente de la universidad el estudia y trabaja y el pedito dice que el es culpable ,que el que atropellaro no tuvo la culpa"
+
+**Notes:** ⭐ **QUALIFIED LEAD - IMMEDIATE FOLLOW-UP NEEDED**
+- Son hit by vehicle while crossing federal highway
+- Location: Mérida-Progreso highway, near university
+- Son is a student/worker
+- Driver claims son was at fault
+- **NO AGENT RESPONSE YET** - this needs immediate attention
+- Fits firm's specialty: vehicle accidents with injuries
 
 ---
 
