@@ -4,10 +4,12 @@
  * Uses ManyChat API: POST /fb/sending/sendContent
  */
 
+import { getDb } from '@/lib/db';
+
 const MANYCHAT_API_BASE = 'https://api.manychat.com';
 const MANYCHAT_API_KEY = process.env.MANYCHAT_API_KEY;
 
-export async function POST(request) {
+export async function POST(request: Request) {
   try {
     const { subscriber_id, message, conversation_id } = await request.json();
 
@@ -53,12 +55,11 @@ export async function POST(request) {
     const result = await manychatResponse.json();
 
     // Store reply in local database for thread continuity
-    const db = (await import('@/lib/db')).getDb();
+    const db = getDb();
     db.prepare(`
       INSERT INTO messages (id, conversation_id, content, sender_type, created_at)
-      VALUES (?, ?, ?, 'agent', datetime('now'))
+      VALUES (lower(hex(randomblob(16))), ?, ?, 'agent', datetime('now'))
     `).run(
-      crypto.randomUUID(),
       conversation_id,
       message
     );
@@ -79,7 +80,7 @@ export async function POST(request) {
   } catch (error) {
     console.error('Inbox reply error:', error);
     return Response.json(
-      { error: 'Internal server error', message: error.message },
+      { error: 'Internal server error', message: (error as Error).message },
       { status: 500 }
     );
   }
