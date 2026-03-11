@@ -191,8 +191,25 @@
 
 ## Conversation 13: Eduardo Ali Carrillo
 - **Subscriber ID:** 25991442190507720
-- **Last Message:** 7d ago
-- **Preview:** "Un tractocamion"
+- **Gender:** Male
+- **Language:** Spanish
+- **Status:** Unassigned
+- **Channel:** Facebook
+
+### Messages:
+1. **[26 Feb 2026, 10:34] (User):** "Buen día"
+2. **[26 Feb 2026, 13:59] (Agent):** "Hola qué tal buen día Eduardo, cómo te podemos ayudar?"
+3. **[26 Feb 2026, 17:02] (User):** "Disculpe"
+4. **(User):** "Para una asesoría"
+5. **(User):** "Sobre un caso de pedida total por inundación"
+6. **(User):** "Cuál sería el costo y la disponibilidad"
+7. **[26 Feb 2026, 18:59] (Agent):** "Hola qué tal buenas noches Eduardo, claro de qué estado nos escribes?"
+8. **(Agent):** "Es de vivienda?"
+9. **[4 Mar 2026, 08:32] (User):** "Buen dia"
+10. **(User):** "Un tractocamion"
+11. **[4 Mar 2026, 10:18] (Agent):** "Buenos dias"
+
+**Notes:** Semi-truck total loss due to flooding. Agent asked if it's residential (vivienda) but it's a commercial vehicle. **NEEDS FOLLOW-UP** - clarify if this falls under their scope (commercial vehicle vs personal injury).
 
 ---
 
