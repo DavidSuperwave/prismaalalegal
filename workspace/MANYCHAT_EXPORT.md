@@ -33,15 +33,55 @@
 
 ## Conversation 2: Victor Esquivel
 - **Subscriber ID:** 26024487400512699
-- **Last Message:** 2h ago
-- **Preview:** "6643708644"
+- **Gender:** Male
+- **Language:** Spanish
+- **Phone:** 6643708644
+- **Location:** Tijuana, Baja California
+- **Status:** Unassigned
+- **Channel:** Facebook
+
+### Messages:
+1. **(Agent):** "Usted tiene la póliza?"
+2. **(Agent):** "De que estado de la república nos escribe ?"
+3. **(User):** "No tenemos ningún papel de la póliza solo contamos con el número de seguro"
+4. **(User):** "Baja California"
+5. **(User):** "En Tijuana"
+6. **(Agent):** "Muy bien, puede proporcionarme un número de contacto para programar una llamada el día de mañana, para hacerle unas preguntas y ver si es posible solicitar la póliza a través de la CONDUCEF"
+7. **[2 Mar 2026, 12:05] (Agent):** "Buenas tardes señor Victor, esperando se encuentre bien. Sólo para darle seguimiento seguimos a sus órdenes para cualquier duda. Saludos"
+8. **[Thursday, 00:08] (User):** "Qué tal buenas noches"
+9. **(User):** "Disculpe la tardanza"
+10. **(User):** "Mi número es 6643708644"
+11. **(User):** "Una pregunta cuanto cobran por el procesos ?"
+12. **[Thursday, 15:50] (Agent):** "Hola buenas tardes, primero revisamos la viabilidad del asunto para revisar un contrato nosotros trabajamos con comisión del resultado"
+13. **(Agent):** "Ma tarde una persona del equipo se estará comunicando vía whatsApp"
+14. **(User):** "Va k va gracias"
+15. **[Today, 12:34] (Agent):** "Hola qué tal Victor buenos días, estoy dando seguimiento, pero veo que el número que compartiste no tiene contacto de WhatsApp"
+16. **(Agent):** "Me puedes indicar un horario para poderte marcar y hacerte unas preguntas referente a tu asunto, gracias buen día"
+17. **(User):** "El número si tiene wassap"
+18. **(Agent):** "OK, permíteme intentar de nuevo"
+19. **(User):** "Va k va"
+20. **(User):** "6643708644"
+
+**Notes:** Insurance policy case, no physical policy documents, only has policy number. Asked about fees. Follow-up needed for CONDUCEF policy request.
 
 ---
 
 ## Conversation 3: Jorge Luis Gongora Sequera
 - **Subscriber ID:** 26093576043614856
-- **Last Message:** 2h ago
-- **Preview:** "si entiendo, pensé que me podian dar una asesoria para ver cómo proceder por que me piden inventario y reporte de perdidas y ganancias pero todas las computadoras se me echaron a perder y no tengo como sacar la información"
+- **Gender:** Male
+- **Language:** Spanish
+- **Location:** Álamo, Veracruz
+- **Status:** Unassigned
+- **Channel:** Facebook
+
+### Messages:
+1. **[Saturday, 10:41] (User):** "buenos días"
+2. **[Saturday, 10:41] (Bot):** "Hola 👋 Gracias por comunicarte con Ala Legal. Somos un despacho enfocado exclusivamente en la representación de familias de personas fallecidas en accidentes automovilísticos y de víctimas con lesiones graves o permanentes..."
+3. **[Saturday, 17:47] (User):** "buenas tardes mi caso por seguro de comercio, en la zona donde vivo que es Álamo Veracuz se inundo y a mi negocio le llegó adentro del local como 3 mts de altura el agua"
+4. **[Today, 12:25] (Agent):** "Hola qué tal buenas tardes, una disculpa nosotros trabajamos con siniestros y percances viales"
+5. **[Today, 12:25] (User):** "si entiendo, pensé que me podian dar una asesoria para ver cómo proceder por que me piden inventario y reporte de perdidas y ganancias pero todas las computadoras se me echaron a perder y no tengo como sacar la información"
+
+**Notes:** Commercial insurance case - business flooded in Álamo Veracruz with 3 meters of water. Needs help with inventory and profit/loss reports but all computers damaged. **DECLINED** - Agent clarified they only handle vehicle accidents, not commercial property damage.
 
 ---
 
