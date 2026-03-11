@@ -1,11 +1,15 @@
 /**
  * ManyChat Bridge — Express server
  * Receives ManyChat webhooks and forwards to OpenClaw
+ * Also handles Telegram commands
  */
 
 const express = require('express');
 const fetch = require('node-fetch');
 require('dotenv').config();
+
+// Load Telegram commands
+const telegramCommands = require('./telegram-webhook');
 
 const app = express();
 app.use(express.json());
@@ -166,6 +170,26 @@ app.post('/manychat/qualify', async (req, res) => {
     res.json({ status: 'ok' });
   } catch (err) {
     console.error('Qualify error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Telegram webhook endpoint (for commands)
+app.post('/telegram/webhook', async (req, res) => {
+  try {
+    const update = req.body;
+    
+    console.log('Telegram update:', JSON.stringify(update, null, 2));
+
+    // Handle message updates
+    if (update.message) {
+      const result = await telegramCommands.handleTelegramUpdate(req, res);
+      return;
+    }
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Telegram webhook error:', err);
     res.status(500).json({ error: err.message });
   }
 });
