@@ -255,10 +255,39 @@
 
 ---
 
-## Conversation 15: Marcelo M Ortiz
+## Conversation 15: Marcelo M Ortiz ⭐ QUALIFIED LEAD
 - **Subscriber ID:** 25421817217496411
-- **Last Message:** 7d ago
-- **Preview:** "?"
+- **Gender:** Male
+- **Language:** Spanish
+- **Location:** Tijuana
+- **Status:** Unassigned
+- **Channel:** Facebook
+- **Priority:** HIGH
+- **Type:** Vehicle Accident / Insurance Claim / Personal Injury
+
+### Messages:
+1. **[25 Feb 2026, 09:17] (User):** "Buenas tardes"
+2. **[26 Feb 2026, 14:03] (Agent):** "Hola qué tal Marcelo buenas tardes, cómo te podemos ayudar?"
+3. **[26 Feb 2026, 14:47] (User):** "Lo que pasa que una aseguradora no que quiere pagar un siniestro"
+4. **[26 Feb 2026, 19:00] (Agent):** "Hola Marcelo, claro, me puedes ayudar con estas preguntas ¿De qué estado nos escribes? Me puedes platicar un poco más sobre el siniestro"
+5. **[3 Mar 2026, 11:54] (User):** "De Tijuana El día 22 de diciembre contrate la póliza vip de chubb seguros . El día 24 tube un siniestro . Yo fui responsable por alcanse El seguro duró casi 3 horas en llegar Entre ese Inter yo le page los daños al otro carro para que no llamara la perito por qué por las condiciones era remolque y multa . El ajustador fue asignado una hora después del choque y le comenté lo que avía pasado . El me dijo que si ya arregle y no hay tercero afectado que me moviera del lugar . El cual accedí basado a las indicaciones del ajustador . El llego como a las 7:30 a donde moví el vehículo . Llego tomo datos, me dio pase médico por que la bolsa me explotó en la cara y me dolía el cuello. Me dijo que por ser 24 ya estaba cerrada el taller de la aseguranza pero que el 26 me mandaría la grúa el cual así se hizo. 15 días después me marca un perito externo de la aseguradora y me dice que está en revisión mi caso y que ocupo fotos que el carro estaba en buenas condiciones al momento de la vigencia de la póliza . Pues sólo tenía 2 días . Le comenté que no es como que le tome fotos todo el día al carro pero que son problema tenía fotos del mismo mes . Mande todo lo que me requirieron incluso testigos que ese día el carro estaba bien . Ya estando a 3 de marzo y aún no me dan un dictamen ni respuesta"
+6. **(Agent):** "Le dieron algún número de siniestro o reporte ?"
+7. **(User):** "Si número siniestro y ya incluso el taller lo dictaminó perdía total"
+8. **(User):** "Pero solo dice que está en investigación"
+9. **(Agent):** "Cuántas veces les ha llamado para seguimiento?"
+10. **(User):** "La última vez fue cuando me mandaron un formulario de evidencia. Fue el 30 de enero . De ahí ellos ya no se ha contacto conmigo y pues esperé lo 30 días naturales que marca la ley para darles el tiempo . Y ya estamos a 3 y no han dado respuesta"
+11. **[3 Mar 2026, 16:35] (User):** "Algo que deba de hacer o que me puedan apoyar"
+12. **(User):** "?"
+13. **[3 Mar 2026, 21:02] (Agent):** "1.-Volver a llamarles para hacer presión. 2.- queja profeco 3.- denuncia en conducef"
+
+**Notes:** ⭐ **QUALIFIED LEAD - ACTIVE CASE**
+- Chubb Insurance (VIP policy) refusing to pay claim
+- Accident: Dec 24 (policy started Dec 22, only 2 days old)
+- Injuries: Airbag deployed, neck pain, face injuries - received medical pass
+- Car declared total loss by workshop
+- Insurance investigating for 30+ days with no response
+- **NEEDS FOLLOW-UP** - Agent gave general advice but should escalate to attorney
+- Location: Tijuana
 
 ---
 
