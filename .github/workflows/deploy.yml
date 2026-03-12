@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - cursor/human-in-the-loop-template
 
 jobs:
   deploy:
@@ -30,8 +29,8 @@ jobs:
           cd /root/prismaalalegal
           git fetch origin
           git reset --hard origin/${{ github.ref_name }}
-          docker compose build web
-          docker compose up -d web
+          docker compose build web manychat-bridge
+          docker compose up -d web manychat-bridge openclaw
           docker system prune -f
         '
         
