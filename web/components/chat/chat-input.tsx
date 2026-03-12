@@ -31,8 +31,8 @@ export function ChatInput({
   };
 
   return (
-    <div className="border-t border-stone-200 bg-white p-4">
-      <div className="rounded-2xl border border-stone-200 bg-stone-50 p-3 shadow-sm">
+    <div className="border-t border-[#2A2A32] bg-[#0E0E12] p-4">
+      <div className="rounded-2xl border border-[#333340] bg-[#141418] p-3 shadow-sm">
         <textarea
           ref={textareaRef}
           value={value}
@@ -44,12 +44,12 @@ export function ChatInput({
             }
           }}
           placeholder={placeholder}
-          className="min-h-[52px] w-full resize-none bg-transparent text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none"
+          className="min-h-[52px] w-full resize-none bg-transparent text-sm text-[#E8E8ED] placeholder:text-[#55556A] focus:outline-none"
         />
         <div className="mt-3 flex items-center justify-between">
           <button
             type="button"
-            className="inline-flex items-center gap-2 rounded-full border border-stone-200 bg-white px-3 py-1.5 text-xs text-stone-500"
+            className="inline-flex items-center gap-2 rounded-full border border-[#333340] bg-transparent px-3 py-1.5 text-xs text-[#8888A0]"
           >
             <Paperclip className="h-3.5 w-3.5" />
             Attach
@@ -59,7 +59,7 @@ export function ChatInput({
             type="button"
             onClick={handleSubmit}
             disabled={isProcessing}
-            className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-full bg-[#818CF8] px-4 py-2 text-sm font-medium text-[#08080A] transition hover:bg-[#6366F1] disabled:opacity-60"
           >
             {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             Send

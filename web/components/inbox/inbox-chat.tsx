@@ -60,17 +60,17 @@ export function InboxChat({ conversationId }: InboxChatProps) {
   };
 
   return (
-    <div className="border-t border-stone-200 bg-white">
-      <div className="border-b border-stone-200 px-4 py-3">
-        <div className="flex items-center gap-2 text-sm font-medium text-stone-900">
-          <Bot className="h-4 w-4 text-blue-600" />
+    <div className="border-t border-[#2A2A32] bg-[#0E0E12]">
+      <div className="border-b border-[#2A2A32] px-4 py-3">
+        <div className="flex items-center gap-2 text-sm font-medium text-[#E8E8ED]">
+          <Bot className="h-4 w-4 text-[#818CF8]" />
           Conversation Copilot
         </div>
       </div>
 
       <div className="max-h-48 space-y-3 overflow-y-auto p-4">
         {messages.length === 0 ? (
-          <p className="text-sm text-stone-500">
+          <p className="text-sm text-[#8888A0]">
             Ask the agent to summarize the thread, draft a reply, or identify next steps.
           </p>
         ) : null}
@@ -80,8 +80,8 @@ export function InboxChat({ conversationId }: InboxChatProps) {
             <div
               className={
                 message.role === "user"
-                  ? "inline-block rounded-2xl bg-blue-600 px-3 py-2 text-sm text-white"
-                  : "inline-block rounded-2xl border border-stone-200 bg-stone-50 px-3 py-2 text-sm text-stone-700"
+                  ? "inline-block rounded-2xl bg-[#818CF8] px-3 py-2 text-sm text-[#08080A]"
+                  : "inline-block rounded-2xl border border-[#2A2A32] bg-[#141418] px-3 py-2 text-sm text-[#E8E8ED]"
               }
             >
               {message.content}

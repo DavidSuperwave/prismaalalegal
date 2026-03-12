@@ -27,10 +27,10 @@ export function ConversationView({
 }) {
   if (!conversation) {
     return (
-      <div className="flex h-full flex-1 items-center justify-center bg-stone-50">
+      <div className="flex h-full flex-1 items-center justify-center bg-[#08080A]">
         <div className="max-w-md text-center">
-          <h3 className="text-lg font-semibold text-stone-900">Select a conversation</h3>
-          <p className="mt-2 text-sm text-stone-500">
+          <h3 className="text-lg font-semibold text-[#E8E8ED]">Select a conversation</h3>
+          <p className="mt-2 text-sm text-[#8888A0]">
             Choose a thread from the left to review the full history and ask the agent for help.
           </p>
         </div>
@@ -39,13 +39,13 @@ export function ConversationView({
   }
 
   return (
-    <section className="flex min-h-0 flex-1 flex-col bg-white">
-      <div className="border-b border-stone-200 px-6 py-4">
+    <section className="flex min-h-0 flex-1 flex-col bg-[#0E0E12]">
+      <div className="border-b border-[#2A2A32] px-6 py-4">
         <div className="flex items-center gap-3">
-          <h1 className="text-lg font-semibold text-stone-900">{conversation.contactName}</h1>
+          <h1 className="text-lg font-semibold text-[#E8E8ED]">{conversation.contactName}</h1>
           <Badge variant="outline">{conversation.source}</Badge>
         </div>
-        <p className="mt-1 text-sm text-stone-500">{conversation.contactPhone || "No phone number available"}</p>
+        <p className="mt-1 text-sm text-[#8888A0]">{conversation.contactPhone || "No phone number available"}</p>
       </div>
 
       <div className="flex-1 space-y-4 overflow-y-auto px-6 py-6">
@@ -54,8 +54,8 @@ export function ConversationView({
             <div
               className={
                 message.sender === "contact"
-                  ? "inline-block max-w-2xl rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-left"
-                  : "inline-block max-w-2xl rounded-2xl bg-blue-600 px-4 py-3 text-left text-white"
+                  ? "inline-block max-w-2xl rounded-2xl border border-[#2A2A32] bg-[#141418] px-4 py-3 text-left"
+                  : "inline-block max-w-2xl rounded-2xl bg-[#818CF8] px-4 py-3 text-left text-[#08080A]"
               }
             >
               <div className="mb-1 flex items-center gap-2 text-xs opacity-80">
