@@ -1,0 +1,41 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+      - cursor/human-in-the-loop-template
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup SSH
+      uses: webfactory/ssh-agent@v0.8.0
+      with:
+        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+        
+    - name: Add host to known hosts
+      run: |
+        mkdir -p ~/.ssh
+        ssh-keyscan -H 157.245.116.140 >> ~/.ssh/known_hosts
+        
+    - name: Deploy to Droplet
+      run: |
+        ssh root@157.245.116.140 '
+          cd /root/prismaalalegal
+          git fetch origin
+          git reset --hard origin/${{ github.ref_name }}
+          docker compose build web
+          docker compose up -d web
+          docker system prune -f
+        '
+        
+    - name: Verify deployment
+      run: |
+        sleep 10
+        curl -f https://alalegal.proyectoprisma.com/health || exit 1
