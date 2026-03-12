@@ -4,7 +4,9 @@ on:
   push:
     branches:
       - main
-      - cursor/human-in-the-loop-template
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   deploy:
@@ -30,12 +32,22 @@ jobs:
           cd /root/prismaalalegal
           git fetch origin
           git reset --hard origin/${{ github.ref_name }}
-          docker compose build web
-          docker compose up -d web
+          docker compose build --no-cache web
+          docker compose build manychat-bridge
+          docker compose up -d web manychat-bridge openclaw
           docker system prune -f
         '
         
     - name: Verify deployment
       run: |
-        sleep 10
-        curl -f https://alalegal.proyectoprisma.com/health || exit 1
+        echo "Waiting for container to be ready..."
+        for i in $(seq 1 18); do
+          if curl -sf https://alalegal.proyectoprisma.com/health -o /dev/null; then
+            echo "Health check passed on attempt $i"
+            exit 0
+          fi
+          echo "Attempt $i/18 - not ready yet, waiting 10s..."
+          sleep 10
+        done
+        echo "Health check failed after 3 minutes"
+        exit 1
