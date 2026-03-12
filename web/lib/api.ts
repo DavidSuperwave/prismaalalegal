@@ -11,7 +11,7 @@ export function getWorkspaceSlug() {
 }
 
 export function getClientName() {
-  return process.env.NEXT_PUBLIC_CLIENT_NAME || "SUPERWAVE";
+  return process.env.NEXT_PUBLIC_CLIENT_NAME || "Prisma";
 }
 
 export function getClientSubtitle() {
