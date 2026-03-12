@@ -1,12 +1,16 @@
-{$DOMAIN} {
+alalegal.proyectoprisma.com {
     handle /manychat/* {
         reverse_proxy manychat-bridge:3300
     }
-    
+    handle /api/webhooks/manychat {
+        reverse_proxy web:3000
+    }
     handle /api/* {
         reverse_proxy web:3000
     }
-    
+    handle /telegram/webhook {
+        reverse_proxy manychat-bridge:3300
+    }
     handle {
         reverse_proxy web:3000
     }
