@@ -1,6 +1,6 @@
 "use client";
 
-import { InboxChat } from "@/components/inbox/inbox-chat";
+import { HumanReplyComposer } from "@/components/inbox/human-reply-composer";
 import { Badge } from "@/components/ui/badge";
 
 export interface ConversationMessage {
@@ -22,8 +22,10 @@ export interface ConversationDetail {
 
 export function ConversationView({
   conversation,
+  onReplySent,
 }: {
   conversation: ConversationDetail | null;
+  onReplySent?: () => void;
 }) {
   if (!conversation) {
     return (
@@ -55,11 +57,15 @@ export function ConversationView({
               className={
                 message.sender === "contact"
                   ? "inline-block max-w-2xl rounded-2xl border border-[#2A2A32] bg-[#141418] px-4 py-3 text-left"
-                  : "inline-block max-w-2xl rounded-2xl bg-[#818CF8] px-4 py-3 text-left text-[#08080A]"
+                  : message.sender === "human"
+                    ? "inline-block max-w-2xl rounded-2xl bg-emerald-600 px-4 py-3 text-left text-white"
+                    : "inline-block max-w-2xl rounded-2xl bg-[#818CF8] px-4 py-3 text-left text-[#08080A]"
               }
             >
               <div className="mb-1 flex items-center gap-2 text-xs opacity-80">
-                <span className="font-medium">{message.sender}</span>
+                <span className="font-medium">
+                  {message.sender === "human" ? "👤 Tú" : message.sender === "agent" ? "🤖 Agente" : conversation.contactName}
+                </span>
                 <span>{new Date(message.timestamp).toLocaleString()}</span>
                 <span className="uppercase">{message.channel}</span>
               </div>
@@ -69,7 +75,11 @@ export function ConversationView({
         ))}
       </div>
 
-      <InboxChat conversationId={conversation.id} />
+      <HumanReplyComposer
+        conversationId={conversation.id}
+        contactName={conversation.contactName}
+        onReplySent={onReplySent}
+      />
     </section>
   );
 }
