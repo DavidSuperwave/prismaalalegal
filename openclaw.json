@@ -5,5 +5,10 @@
         "primary": "openrouter/moonshotai/kimi-k2.5"
       }
     }
+  },
+  "plugins": {
+    "telegram": {
+      "enabled": true
+    }
   }
 }
