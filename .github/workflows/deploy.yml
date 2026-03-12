@@ -5,6 +5,9 @@ on:
     branches:
       - main
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -36,5 +39,14 @@ jobs:
         
     - name: Verify deployment
       run: |
-        sleep 10
-        curl -f https://alalegal.proyectoprisma.com/health || exit 1
+        echo "Waiting for container to be ready..."
+        for i in $(seq 1 12); do
+          if curl -sf https://alalegal.proyectoprisma.com/health -o /dev/null; then
+            echo "Health check passed on attempt $i"
+            exit 0
+          fi
+          echo "Attempt $i/12 - not ready yet, waiting 10s..."
+          sleep 10
+        done
+        echo "Health check failed after 2 minutes"
+        exit 1
