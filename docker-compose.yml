@@ -34,7 +34,7 @@ services:
     ports:
       - "127.0.0.1:3000:3000"
     volumes:
-      - ./web/data:/app/data
+      - ./data:/app/data
     env_file: .env
     depends_on:
       - openclaw

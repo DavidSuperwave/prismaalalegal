@@ -1,6 +1,6 @@
 "use client";
 
-import { InboxChat } from "@/components/inbox/inbox-chat";
+import { HumanReplyComposer } from "@/components/inbox/human-reply-composer";
 import { Badge } from "@/components/ui/badge";
 
 export interface ConversationMessage {
@@ -22,8 +22,10 @@ export interface ConversationDetail {
 
 export function ConversationView({
   conversation,
+  onReplySent,
 }: {
   conversation: ConversationDetail | null;
+  onReplySent?: () => void;
 }) {
   if (!conversation) {
     return (
@@ -69,7 +71,11 @@ export function ConversationView({
         ))}
       </div>
 
-      <InboxChat conversationId={conversation.id} />
+      <HumanReplyComposer
+        conversationId={conversation.id}
+        contactName={conversation.contactName}
+        onReplySent={onReplySent}
+      />
     </section>
   );
 }
