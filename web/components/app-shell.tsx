@@ -12,9 +12,9 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 
 const navItems = [
-  { id: "chat", label: "Agent", icon: Bot, href: "/chat" },
+  { id: "chat", label: "Agente", icon: Bot, href: "/chat" },
   { id: "crm", label: "Pipeline", icon: Target, href: "/crm" },
-  { id: "inbox", label: "Inbox", icon: Mail, href: "/inbox" },
+  { id: "inbox", label: "Bandeja", icon: Mail, href: "/inbox" },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -37,7 +37,7 @@ function AppSidebar() {
     router.refresh();
   };
 
-  const userName = user?.name || user?.email?.split("@")[0] || "Admin";
+  const userName = user?.name || user?.email?.split("@")[0] || "Administrador";
   const userEmail = user?.email || "admin@example.com";
 
   return (
@@ -91,7 +91,7 @@ function AppSidebar() {
           <button
             onClick={handleSignOut}
             className="text-stone-400 transition hover:text-stone-900"
-            title="Sign out"
+            title="Cerrar sesión"
           >
             <LogOut className="h-4 w-4" />
           </button>

@@ -4,8 +4,8 @@ import { AuthProvider } from "@/contexts/auth-context";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "SUPERWAVE",
-  description: "SUPERWAVE Agent Control Center",
+  title: "ALA Legal",
+  description: "Centro de control de ALA Legal",
 };
 
 export default function RootLayout({
@@ -14,7 +14,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="es">
       <body className="antialiased">
         <AuthProvider>{children}</AuthProvider>
       </body>

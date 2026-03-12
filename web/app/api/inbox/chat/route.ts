@@ -10,7 +10,7 @@ export async function POST(request: Request) {
   };
 
   if (!conversationId || !message?.trim()) {
-    return NextResponse.json({ error: "conversationId and message are required" }, { status: 400 });
+    return NextResponse.json({ error: "conversationId y message son obligatorios" }, { status: 400 });
   }
 
   const db = getDb();
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     | undefined;
 
   if (!conversation) {
-    return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
+    return NextResponse.json({ error: "Conversación no encontrada" }, { status: 404 });
   }
 
   const messages = db
@@ -58,8 +58,10 @@ export async function POST(request: Request) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         role: "user",
-        channel: "web",
-        content: `You are reviewing the following conversation with ${conversation.contact_name} (${conversation.source}). Conversation history:\n${context}\n\nUser request: ${message}`,
+        channel: "telegram_admin",
+        content:
+          `[TELEGRAM_ADMIN] Revisa esta conversación con ${conversation.contact_name} (${conversation.source}).\n` +
+          `Historial:\n${context}\n\nSolicitud del usuario: ${message}`,
       }),
     });
 
@@ -78,12 +80,12 @@ export async function POST(request: Request) {
         data.content ||
         data.message ||
         data.response ||
-        "I reviewed the thread but did not receive a complete reply from OpenClaw.",
+        "Revisé el hilo pero OpenClaw no devolvió una respuesta completa.",
     });
   } catch {
     return NextResponse.json({
       content:
-        "OpenClaw is currently unavailable. Review the timeline above and try your inbox request again shortly.",
+        "OpenClaw no está disponible en este momento. Revisa el historial y vuelve a intentarlo en unos minutos.",
     });
   }
 }

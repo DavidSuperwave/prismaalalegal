@@ -3,13 +3,13 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-const SUPERWAVE_ASCII = [
-  " ███████╗██╗   ██╗██████╗ ███████╗██████╗ ██╗    ██╗ █████╗ ██╗   ██╗███████╗",
-  " ██╔════╝██║   ██║██╔══██╗██╔════╝██╔══██╗██║    ██║██╔══██╗██║   ██║██╔════╝",
-  " ███████╗██║   ██║██████╔╝█████╗  ██████╔╝██║ █╗ ██║███████║██║   ██║█████╗  ",
-  " ╚════██║██║   ██║██╔═══╝ ██╔══╝  ██╔══██╗██║███╗██║██╔══██║╚██╗ ██╔╝██╔══╝  ",
-  " ███████║╚██████╔╝██║     ███████╗██║  ██║╚███╔███╔╝██║  ██║ ╚████╔╝ ███████╗",
-  " ╚══════╝ ╚═════╝ ╚═╝     ╚══════╝╚═╝  ╚═╝ ╚══╝╚══╝ ╚═╝  ╚═╝  ╚═══╝  ╚══════╝",
+const ALA_LEGAL_ASCII = [
+  "     _    _        _        _                          _ ",
+  "    / \\  | |      / \\      | |    ___  __ _  __ _  __| |",
+  "   / _ \\ | |     / _ \\     | |   / _ \\/ _` |/ _` |/ _` |",
+  "  / ___ \\| |___ / ___ \\    | |__|  __/ (_| | (_| | (_| |",
+  " /_/   \\_\\_____/_/   \\_\\   |_____\\___|\\__, |\\__,_|\\__,_|",
+  "                                       |___/            ",
 ];
 
 const WAVE_ASCII = [
@@ -33,6 +33,12 @@ export function LoginForm() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  const formatLoginError = (incoming: string | undefined) => {
+    if (!incoming) return "No se pudo iniciar sesión";
+    if (incoming === "Invalid credentials" || incoming === "Credenciales inválidas") return "Credenciales inválidas";
+    return incoming;
+  };
+
   const handleLogin = async (event: React.FormEvent) => {
     event.preventDefault();
     setError("");
@@ -48,7 +54,7 @@ export function LoginForm() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || "Login failed");
+        setError(formatLoginError(data.error));
         setIsLoading(false);
         return;
       }
@@ -60,7 +66,7 @@ export function LoginForm() {
       router.push(nextPath);
       router.refresh();
     } catch {
-      setError("Connection error. Please try again.");
+      setError("Error de conexión. Inténtalo de nuevo.");
       setIsLoading(false);
     }
   };
@@ -80,21 +86,21 @@ export function LoginForm() {
       </div>
 
       <div className="relative z-10 flex w-full max-w-md flex-col items-center">
-        <div className="ascii-banner mb-4 hidden select-none sm:block" aria-label="SUPERWAVE">
-          {SUPERWAVE_ASCII.join("\n")}
+        <div className="ascii-banner mb-4 hidden select-none sm:block" aria-label="ALA LEGAL">
+          {ALA_LEGAL_ASCII.join("\n")}
         </div>
         <h1 className="mb-2 text-2xl font-bold text-blue-600 sm:hidden" style={{ fontFamily: "monospace" }}>
-          SUPERWAVE
+          ALA LEGAL
         </h1>
-        <p className="mb-6 text-sm text-stone-500">Powered by OpenClaw</p>
+        <p className="mb-6 text-sm text-stone-500">Impulsado por OpenClaw</p>
 
         <div className="glass-card w-full rounded-2xl p-8">
           <div className="mb-6 text-center">
             <h2 className="text-lg font-semibold text-stone-800" style={{ fontFamily: "monospace" }}>
-              Agent Control Center
+              Centro de Control del Agente
             </h2>
             <p className="mt-2 text-sm text-stone-500">
-              Sign in to access your chat, pipeline, and inbox.
+              Inicia sesión para acceder al chat, pipeline y bandeja.
             </p>
           </div>
 
@@ -115,14 +121,14 @@ export function LoginForm() {
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 className="w-full rounded-lg border border-blue-200/70 bg-white/95 px-4 py-3 text-stone-800 transition focus:border-blue-500 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.15)]"
-                placeholder="admin@yourfirm.com"
+                placeholder="admin@alalegal.com"
                 required
               />
             </div>
 
             <div>
               <label htmlFor="password" className="mb-1 block text-sm font-medium text-stone-700">
-                Password
+                Contraseña
               </label>
               <input
                 id="password"
@@ -140,7 +146,7 @@ export function LoginForm() {
               disabled={isLoading}
               className="w-full rounded-lg bg-[linear-gradient(135deg,#2563eb_0%,#3b82f6_100%)] py-3 font-medium text-white transition hover:-translate-y-px hover:bg-[linear-gradient(135deg,#1d4ed8_0%,#2563eb_100%)] hover:shadow-[0_4px_12px_rgba(59,130,246,0.3)] disabled:cursor-not-allowed disabled:opacity-70"
             >
-              {isLoading ? "Signing in..." : "Sign In"}
+              {isLoading ? "Ingresando..." : "Iniciar sesión"}
             </button>
           </form>
         </div>

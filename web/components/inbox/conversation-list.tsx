@@ -47,13 +47,13 @@ export function ConversationList({
   return (
     <aside className="flex h-full w-80 flex-col border-r border-stone-200 bg-white">
       <div className="border-b border-stone-200 p-4">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-500">Inbox</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-500">Bandeja de entrada</h2>
         <div className="relative mt-3">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
           <Input
             value={search}
             onChange={(event) => onSearchChange(event.target.value)}
-            placeholder="Search contacts"
+            placeholder="Buscar contactos"
             className="pl-9"
           />
         </div>
@@ -61,7 +61,7 @@ export function ConversationList({
 
       <div className="flex-1 overflow-y-auto">
         {conversations.length === 0 ? (
-          <div className="p-4 text-sm text-stone-500">No conversations found.</div>
+          <div className="p-4 text-sm text-stone-500">No hay conversaciones.</div>
         ) : null}
 
         {conversations.map((conversation) => (

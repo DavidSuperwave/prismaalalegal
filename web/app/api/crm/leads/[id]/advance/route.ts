@@ -11,7 +11,7 @@ export async function POST(_: Request, { params }: { params: { id: string } }) {
     .get(params.id) as { status: (typeof ORDER)[number] } | undefined;
 
   if (!lead) {
-    return NextResponse.json({ error: "Lead not found" }, { status: 404 });
+    return NextResponse.json({ error: "Lead no encontrado" }, { status: 404 });
   }
 
   const currentIndex = ORDER.indexOf(lead.status);
@@ -22,7 +22,7 @@ export async function POST(_: Request, { params }: { params: { id: string } }) {
     `UPDATE leads
       SET status = ?, last_action = ?, last_action_at = ?, updated_at = ?
       WHERE id = ?`
-  ).run(nextStatus, `Advanced to ${nextStatus}`, now, now, params.id);
+  ).run(nextStatus, `Avanzado a ${nextStatus}`, now, now, params.id);
 
   return NextResponse.json({ ok: true, status: nextStatus });
 }

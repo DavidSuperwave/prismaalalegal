@@ -29,7 +29,7 @@ function mapLead(row: LeadRow) {
     source: row.source,
     status: row.status,
     caseType: row.case_type || undefined,
-    lastAction: row.last_action || "Lead created",
+    lastAction: row.last_action || "Lead creado",
     lastActionAt: row.last_action_at,
     notes: row.notes || "",
     assignedTo: row.assigned_to || undefined,
@@ -75,7 +75,7 @@ export async function POST(request: Request) {
   };
 
   if (!body.name?.trim()) {
-    return NextResponse.json({ error: "Lead name is required" }, { status: 400 });
+    return NextResponse.json({ error: "El nombre del lead es obligatorio" }, { status: 400 });
   }
 
   const db = getDb();
@@ -97,7 +97,7 @@ export async function POST(request: Request) {
       source: body.source || "manual",
       status: body.status || "new",
       case_type: body.caseType || null,
-      last_action: body.lastAction || "Lead created",
+      last_action: body.lastAction || "Lead creado",
       last_action_at: now,
       notes: body.notes || "",
       assigned_to: body.assignedTo || null,

@@ -29,7 +29,7 @@ function mapLead(row: LeadRow) {
     source: row.source,
     status: row.status,
     caseType: row.case_type || undefined,
-    lastAction: row.last_action || "Lead created",
+    lastAction: row.last_action || "Lead creado",
     lastActionAt: row.last_action_at,
     notes: row.notes || "",
     assignedTo: row.assigned_to || undefined,
@@ -57,7 +57,7 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
   const row = getLeadRow(params.id);
 
   if (!row) {
-    return NextResponse.json({ error: "Lead not found" }, { status: 404 });
+    return NextResponse.json({ error: "Lead no encontrado" }, { status: 404 });
   }
 
   return NextResponse.json({ lead: mapLead(row) });
@@ -67,7 +67,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   const currentRow = getLeadRow(params.id);
 
   if (!currentRow) {
-    return NextResponse.json({ error: "Lead not found" }, { status: 404 });
+    return NextResponse.json({ error: "Lead no encontrado" }, { status: 404 });
   }
 
   const body = (await request.json()) as {

@@ -51,7 +51,7 @@ export function InboxChat({ conversationId }: InboxChatProps) {
         {
           id: crypto.randomUUID(),
           role: "assistant",
-          content: "I couldn't process that inbox request. Please try again.",
+          content: "No pude procesar esa solicitud de bandeja. Inténtalo de nuevo.",
         },
       ]);
     } finally {
@@ -64,14 +64,14 @@ export function InboxChat({ conversationId }: InboxChatProps) {
       <div className="border-b border-stone-200 px-4 py-3">
         <div className="flex items-center gap-2 text-sm font-medium text-stone-900">
           <Bot className="h-4 w-4 text-blue-600" />
-          Conversation Copilot
+          Copiloto de conversación
         </div>
       </div>
 
       <div className="max-h-48 space-y-3 overflow-y-auto p-4">
         {messages.length === 0 ? (
           <p className="text-sm text-stone-500">
-            Ask the agent to summarize the thread, draft a reply, or identify next steps.
+            Pide al agente que resuma el hilo, redacte una respuesta o sugiera próximos pasos.
           </p>
         ) : null}
 
@@ -100,7 +100,7 @@ export function InboxChat({ conversationId }: InboxChatProps) {
               void sendMessage();
             }
           }}
-          placeholder="Ask about this conversation..."
+          placeholder="Pregunta sobre esta conversación..."
           disabled={!conversationId || isLoading}
         />
         <Button onClick={() => void sendMessage()} disabled={!conversationId || isLoading}>

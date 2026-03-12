@@ -9,12 +9,12 @@ import { Badge } from "@/components/ui/badge";
 import { LeadDetailModal } from "@/components/crm/lead-detail-modal";
 
 const COLUMNS = [
-  { id: "new", label: "New Inquiry", color: "#3b82f6" },
-  { id: "contacted", label: "Contacted", color: "#8b5cf6" },
-  { id: "qualified", label: "Qualified", color: "#f59e0b" },
-  { id: "consultation", label: "Consultation Set", color: "#10b981" },
-  { id: "retained", label: "Retained", color: "#059669" },
-  { id: "closed", label: "Closed/Lost", color: "#ef4444" },
+  { id: "new", label: "Nuevo", color: "#3b82f6" },
+  { id: "contacted", label: "Contactado", color: "#8b5cf6" },
+  { id: "qualified", label: "Calificado", color: "#f59e0b" },
+  { id: "consultation", label: "Consulta agendada", color: "#10b981" },
+  { id: "retained", label: "Retenido", color: "#059669" },
+  { id: "closed", label: "Cerrado/Perdido", color: "#ef4444" },
 ] as const;
 
 export function PipelineKanban() {
@@ -40,7 +40,7 @@ export function PipelineKanban() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         status,
-        lastAction: `Moved to ${COLUMNS.find((column) => column.id === status)?.label}`,
+        lastAction: `Movido a ${COLUMNS.find((column) => column.id === status)?.label}`,
       }),
     });
 
@@ -54,12 +54,12 @@ export function PipelineKanban() {
         <div className="border-b border-stone-200 bg-white px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-semibold text-stone-900">CRM Pipeline</h1>
+              <h1 className="text-xl font-semibold text-stone-900">Pipeline CRM</h1>
               <p className="mt-1 text-sm text-stone-500">
-                {leads.length} leads total • {leads.filter((lead) => lead.status === "new").length} new
+                {leads.length} leads totales • {leads.filter((lead) => lead.status === "new").length} nuevos
               </p>
             </div>
-            <Button onClick={() => setShowCreateModal(true)}>+ Add Lead</Button>
+            <Button onClick={() => setShowCreateModal(true)}>+ Agregar lead</Button>
           </div>
         </div>
 
@@ -88,13 +88,13 @@ export function PipelineKanban() {
                 <div className="flex-1 space-y-3 overflow-y-auto p-3">
                   {isLoading ? (
                     <div className="rounded-lg border border-dashed border-stone-200 bg-white p-4 text-sm text-stone-500">
-                      Loading leads...
+                      Cargando leads...
                     </div>
                   ) : null}
 
                   {!isLoading && column.leads.length === 0 ? (
                     <div className="rounded-lg border border-dashed border-stone-200 bg-white p-4 text-sm text-stone-500">
-                      Drop a lead here.
+                      Suelta un lead aquí.
                     </div>
                   ) : null}
 
@@ -109,7 +109,7 @@ export function PipelineKanban() {
                       <div className="mb-2 flex items-start justify-between gap-3">
                         <div>
                           <h3 className="font-medium text-stone-900">{lead.name}</h3>
-                          <p className="text-sm text-stone-500">{lead.email || lead.phone || "No contact detail"}</p>
+                          <p className="text-sm text-stone-500">{lead.email || lead.phone || "Sin dato de contacto"}</p>
                         </div>
                         <Badge variant={lead.source === "manychat" ? "blue" : "outline"}>{lead.source}</Badge>
                       </div>
@@ -118,7 +118,7 @@ export function PipelineKanban() {
 
                       <div className="flex items-center justify-between text-xs text-stone-500">
                         <span>{formatTimeAgo(lead.lastActionAt)}</span>
-                        <span>{lead.assignedTo ? lead.assignedTo.split("@")[0] : "Unassigned"}</span>
+                        <span>{lead.assignedTo ? lead.assignedTo.split("@")[0] : "Sin asignar"}</span>
                       </div>
 
                       {lead.tags.length > 0 ? (

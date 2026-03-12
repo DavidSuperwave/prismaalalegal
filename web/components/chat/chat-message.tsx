@@ -31,7 +31,7 @@ export function ChatMessage({ message }: { message: ChatMessageType }) {
         ) : (
           <div className="prose-chat text-sm leading-6">
             <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
-              {message.content || (message.isStreaming ? "Thinking..." : "")}
+              {message.content || (message.isStreaming ? "Pensando..." : "")}
             </ReactMarkdown>
           </div>
         )}

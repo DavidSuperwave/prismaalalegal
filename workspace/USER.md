@@ -1,54 +1,37 @@
-# USER.md — Prisma Legal Context
+# USER.md — Contexto de ALA Legal
 
-## About Prisma Legal
+## Sobre ALA Legal
 
-- **Name:** Prisma Legal Services
-- **Location:** California (serving statewide)
-- **Founded:** 2018
-- **Team:** 12 attorneys across 6 practice areas
+- **Nombre:** ALA Legal
+- **Ubicación:** Monterrey, Nuevo León, México
+- **Especialidad principal:** Intake y calificación de casos de responsabilidad civil y siniestros
+- **Canales principales:** ManyChat (inbound), Telegram (equipo interno), Web Inbox (operación diaria)
 
-## Key Personnel
+## Objetivo operativo
 
-- **Managing Partner:** Sarah Chen (Personal Injury)
-- **Family Law Lead:** Michael Rodriguez
-- **Criminal Defense Lead:** David Park
-- **Immigration Lead:** Aisha Patel
-- **Business Law Lead:** James Wilson
-- **Estate Planning Lead:** Emily Foster
+- Atender y calificar leads con rapidez.
+- Mantener historial completo en Supermemory y CRM local.
+- Permitir respuesta humana desde Telegram y desde la Bandeja Web.
+- Escalar leads con mejor fit al equipo legal para contacto inmediato.
 
-## Contact Information
+## Flujo de trabajo
 
-- **Main Phone:** (555) 123-4567
-- **Email:** intake@prismalegal.com
-- **Website:** https://prismalegal.com
-- **Consultation Booking:** https://calendly.com/prisma-legal
+1. Llega mensaje inbound por ManyChat.
+2. Se guarda en SQLite y Supermemory.
+3. El agente sugiere respuesta y califica el caso.
+4. El equipo responde por Telegram o por la Bandeja Web.
+5. Si el fit es alto, se notifica a `#qualified-leads`.
 
-## Office Hours
+## Política de comunicación
 
-- **Mon-Fri:** 8:00 AM - 6:00 PM PST
-- **Sat:** 10:00 AM - 2:00 PM PST
-- **Sun:** Closed
+- Idioma principal: **español**.
+- Tono: empático, claro, profesional.
+- Siempre evitar asesoría legal concluyente en intake.
+- Priorizar recopilación de hechos, documentos y datos de contacto.
 
-## Consultation Process
+## Stack preferido
 
-1. Initial intake (AI/agent — 5 min)
-2. Attorney review of case details
-3. 30-min consultation scheduled
-4. Retainer agreement if proceeding
-
-## Pricing Model
-
-- **Personal Injury:** Contingency (no fee unless we win)
-- **Family Law:** Hourly + retainer
-- **Criminal Defense:** Flat fee or hourly
-- **Immigration:** Flat fee per service
-- **Business Law:** Hourly or monthly retainer
-- **Estate Planning:** Flat fee packages
-
-## Preferred Tech Stack
-
-- CRM: ManyChat for lead capture
-- Scheduling: Calendly
-- Communication: Telegram for internal alerts
-- Memory: Supermemory v3
-- Agent: OpenClaw + Kimi K2.5
+- CRM / Captura: ManyChat
+- Coordinación interna: Telegram
+- Memoria: Supermemory v3
+- Agente: OpenClaw + Kimi K2.5

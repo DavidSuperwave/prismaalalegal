@@ -59,7 +59,7 @@ export async function POST(request: Request) {
   };
 
   if (!body.contactName?.trim()) {
-    return NextResponse.json({ error: "Contact name is required" }, { status: 400 });
+    return NextResponse.json({ error: "El nombre del contacto es obligatorio" }, { status: 400 });
   }
 
   const db = getDb();

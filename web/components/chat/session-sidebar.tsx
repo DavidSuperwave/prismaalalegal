@@ -27,14 +27,14 @@ export function SessionSidebar({
         <h3 className="text-sm font-medium text-stone-900">Chats</h3>
         <Button variant="ghost" size="sm" onClick={onNewChat}>
           <MessageSquarePlus className="mr-1 h-4 w-4" />
-          New
+          Nuevo
         </Button>
       </div>
 
       <div className="flex-1 space-y-1 overflow-y-auto p-2">
         {sessions.length === 0 ? (
           <div className="rounded-lg border border-dashed border-stone-200 p-4 text-sm text-stone-500">
-            No conversations yet. Start a new chat to create your first session.
+            Aún no hay conversaciones. Inicia un chat nuevo para crear la primera sesión.
           </div>
         ) : null}
 
@@ -51,13 +51,13 @@ export function SessionSidebar({
             <button onClick={() => onSessionClick(session.id)} className="min-w-0 flex-1 text-left">
               <p className="truncate text-sm font-medium text-stone-900">{session.title}</p>
               <p className="mt-1 text-xs text-stone-500">
-                {session.messageCount} messages • {new Date(session.updatedAt).toLocaleString()}
+                {session.messageCount} mensajes • {new Date(session.updatedAt).toLocaleString("es-MX")}
               </p>
             </button>
             <button
               onClick={() => onDeleteSession(session.id)}
               className="opacity-0 transition group-hover:opacity-100"
-              title="Delete chat"
+              title="Eliminar chat"
             >
               <Trash2 className="h-4 w-4 text-stone-400 hover:text-red-600" />
             </button>

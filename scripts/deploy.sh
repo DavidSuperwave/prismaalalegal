@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-# deploy.sh — Deploy Prisma Legal Agent to production
+# deploy.sh — Deploy ALA Legal Agent to production
 # Usage: ./deploy.sh yourdomain.com your@email.com
 
 DOMAIN=${1:-}
@@ -12,7 +12,7 @@ if [ -z "$DOMAIN" ] || [ -z "$EMAIL" ]; then
     exit 1
 fi
 
-echo "🚀 Deploying Prisma Legal Agent..."
+echo "🚀 Deploying ALA Legal Agent..."
 echo "Domain: $DOMAIN"
 echo "Email: $EMAIL"
 
@@ -34,6 +34,11 @@ if [ ! -f .env ]; then
     echo "❌ .env file not found. Copy from .env.example and fill in your keys."
     exit 1
 fi
+
+# Load environment variables for webhook setup
+set -a
+. ./.env
+set +a
 
 # Update Caddyfile with domain
 sed -i "s/{\\$DOMAIN}/$DOMAIN/g" Caddyfile
@@ -68,10 +73,21 @@ else
     echo "⚠️  OpenClaw: Check logs with 'docker logs prismaalalegal-openclaw-1'"
 fi
 
+if [ -n "${TELEGRAM_BOT_TOKEN:-}" ]; then
+    echo "🤖 Registering Telegram webhook..."
+    curl -sS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/setWebhook" \
+      -H "Content-Type: application/json" \
+      -d "{\"url\":\"https://${DOMAIN}/telegram/webhook\",\"allowed_updates\":[\"message\",\"callback_query\"]}" > /dev/null
+    echo "✅ Telegram webhook registered: https://${DOMAIN}/telegram/webhook"
+else
+    echo "⚠️  TELEGRAM_BOT_TOKEN is empty. Skipping Telegram webhook registration."
+fi
+
 echo ""
 echo "🎉 Deployment complete!"
 echo "Website: https://$DOMAIN"
 echo "ManyChat webhook: https://$DOMAIN/manychat/webhook"
+echo "Telegram webhook: https://$DOMAIN/telegram/webhook"
 echo ""
 echo "Next steps:"
 echo "1. Configure ManyChat webhook URL"

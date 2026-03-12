@@ -12,7 +12,7 @@ export async function POST(request: Request) {
   const configuredUser = getConfiguredUser();
 
   if (email !== configuredUser.email || password !== configuredUser.password) {
-    return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+    return NextResponse.json({ error: "Credenciales inválidas" }, { status: 401 });
   }
 
   const user = {

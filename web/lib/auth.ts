@@ -25,7 +25,7 @@ export function getConfiguredUser() {
   const name =
     process.env.AUTH_NAME ||
     process.env.NEXT_PUBLIC_CLIENT_NAME ||
-    "SUPERWAVE Admin";
+    "ALA Legal Admin";
 
   return { email, password, name };
 }

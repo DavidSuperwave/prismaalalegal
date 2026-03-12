@@ -10,6 +10,21 @@ import { Textarea } from "@/components/ui/textarea";
 
 const STATUSES: Lead["status"][] = ["new", "contacted", "qualified", "consultation", "retained", "closed"];
 const CASE_TYPES = ["immigration", "criminal", "family", "civil", "other"];
+const STATUS_LABELS: Record<Lead["status"], string> = {
+  new: "Nuevo",
+  contacted: "Contactado",
+  qualified: "Calificado",
+  consultation: "Consulta agendada",
+  retained: "Retenido",
+  closed: "Cerrado/Perdido",
+};
+const CASE_TYPE_LABELS: Record<string, string> = {
+  immigration: "Inmigración",
+  criminal: "Penal",
+  family: "Familiar",
+  civil: "Civil",
+  other: "Otro",
+};
 
 interface LeadDetailModalProps {
   lead: Lead | null;
@@ -108,10 +123,10 @@ export function LeadDetailModal({
         <div className="flex items-start justify-between border-b border-stone-200 p-6">
           <div>
             <h2 className="text-xl font-semibold text-stone-900">
-              {isCreateMode ? "Add Lead" : formState.name || "Lead Detail"}
+              {isCreateMode ? "Agregar lead" : formState.name || "Detalle del lead"}
             </h2>
             <p className="mt-1 text-sm text-stone-500">
-              Review notes, case type, tags, and stage progression.
+              Revisa notas, tipo de caso, etiquetas y avance en el pipeline.
             </p>
           </div>
           <button onClick={onClose} className="text-stone-400 transition hover:text-stone-900">
@@ -121,7 +136,7 @@ export function LeadDetailModal({
 
         <div className="grid gap-4 p-6 md:grid-cols-2">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-stone-700">Name</label>
+            <label className="text-sm font-medium text-stone-700">Nombre</label>
             <Input value={formState.name} onChange={(event) => setFormState({ ...formState, name: event.target.value })} />
           </div>
           <div className="space-y-2">
@@ -129,15 +144,15 @@ export function LeadDetailModal({
             <Input value={formState.email} onChange={(event) => setFormState({ ...formState, email: event.target.value })} />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium text-stone-700">Phone</label>
+            <label className="text-sm font-medium text-stone-700">Teléfono</label>
             <Input value={formState.phone} onChange={(event) => setFormState({ ...formState, phone: event.target.value })} />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium text-stone-700">Assigned To</label>
+            <label className="text-sm font-medium text-stone-700">Asignado a</label>
             <Input value={formState.assignedTo} onChange={(event) => setFormState({ ...formState, assignedTo: event.target.value })} />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium text-stone-700">Status</label>
+            <label className="text-sm font-medium text-stone-700">Estado</label>
             <select
               value={formState.status}
               onChange={(event) => setFormState({ ...formState, status: event.target.value as Lead["status"] })}
@@ -145,58 +160,58 @@ export function LeadDetailModal({
             >
               {STATUSES.map((status) => (
                 <option key={status} value={status}>
-                  {status}
+                  {STATUS_LABELS[status]}
                 </option>
               ))}
             </select>
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium text-stone-700">Case Type</label>
+            <label className="text-sm font-medium text-stone-700">Tipo de caso</label>
             <select
               value={formState.caseType}
               onChange={(event) => setFormState({ ...formState, caseType: event.target.value })}
               className="flex h-10 w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900"
             >
-              <option value="">Select case type</option>
+              <option value="">Selecciona tipo de caso</option>
               {CASE_TYPES.map((caseType) => (
                 <option key={caseType} value={caseType}>
-                  {caseType}
+                  {CASE_TYPE_LABELS[caseType]}
                 </option>
               ))}
             </select>
           </div>
           <div className="space-y-2 md:col-span-2">
-            <label className="text-sm font-medium text-stone-700">Last Action</label>
+            <label className="text-sm font-medium text-stone-700">Última acción</label>
             <Input
               value={formState.lastAction}
               onChange={(event) => setFormState({ ...formState, lastAction: event.target.value })}
-              placeholder="Called client, sent follow-up, scheduled consultation..."
+              placeholder="Llamé al cliente, envié seguimiento, agendé consulta..."
             />
           </div>
           <div className="space-y-2 md:col-span-2">
-            <label className="text-sm font-medium text-stone-700">Tags</label>
+            <label className="text-sm font-medium text-stone-700">Etiquetas</label>
             <Input
               value={formState.tags}
               onChange={(event) => setFormState({ ...formState, tags: event.target.value })}
-              placeholder="manychat, warm, spanish"
+              placeholder="manychat, tibio, español"
             />
           </div>
           <div className="space-y-2 md:col-span-2">
-            <label className="text-sm font-medium text-stone-700">Notes</label>
+            <label className="text-sm font-medium text-stone-700">Notas</label>
             <Textarea
               value={formState.notes}
               onChange={(event) => setFormState({ ...formState, notes: event.target.value })}
-              placeholder="Intake summary, next steps, court date, budget notes..."
+              placeholder="Resumen de intake, próximos pasos, fecha de audiencia, presupuesto..."
             />
           </div>
         </div>
 
         <div className="flex items-center justify-end gap-3 border-t border-stone-200 p-6">
           <Button variant="outline" onClick={onClose}>
-            Cancel
+            Cancelar
           </Button>
           <Button onClick={handleSubmit} disabled={isSubmitting || !formState.name.trim()}>
-            {isSubmitting ? "Saving..." : isCreateMode ? "Create Lead" : "Save Changes"}
+            {isSubmitting ? "Guardando..." : isCreateMode ? "Crear lead" : "Guardar cambios"}
           </Button>
         </div>
       </div>

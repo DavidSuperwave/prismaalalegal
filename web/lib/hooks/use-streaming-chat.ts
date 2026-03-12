@@ -71,7 +71,7 @@ export function useStreamingChat() {
     const now = new Date().toISOString();
     const session: ChatSession = {
       id: generateId(),
-      title: "New chat",
+      title: "Nuevo chat",
       sessionType: "chat",
       messageCount: 0,
       createdAt: now,
@@ -220,7 +220,7 @@ export function useStreamingChat() {
 
           const completedMessages = optimisticMessages.map((message) =>
             message.id === assistantMessage.id
-              ? { ...message, content: finalText || "No response received.", isStreaming: false }
+              ? { ...message, content: finalText || "No se recibió respuesta.", isStreaming: false }
               : message
           );
           persistMessages(sessionId, completedMessages);
@@ -240,7 +240,7 @@ export function useStreamingChat() {
           message.id === assistantMessage.id
             ? {
                 ...message,
-                content: "Sorry, I couldn't reach OpenClaw. Please try again.",
+                content: "No pude conectar con OpenClaw. Inténtalo de nuevo.",
                 isStreaming: false,
               }
             : message

@@ -7,6 +7,7 @@
 const express = require('express');
 const fetch = require('node-fetch');
 require('dotenv').config();
+const { handleTelegramUpdate } = require('./telegram-webhook');
 
 const app = express();
 app.use(express.json());
@@ -104,7 +105,7 @@ app.post('/manychat/webhook', async (req, res) => {
     });
 
     // Notify Telegram #replies
-    await notifyTelegramReply(contactName, messageText, 'manychat');
+    await notifyTelegramReply(contactName, messageText, 'manychat', subscriberId);
 
     // Forward to OpenClaw
     const openclawResp = await fetch(`${OPENCLAW_GATEWAY_URL}/api/message`, {
@@ -128,7 +129,10 @@ app.post('/manychat/webhook', async (req, res) => {
     }
 
     const agentResponse = await openclawResp.json();
-    const responseText = agentResponse.content || agentResponse.message || 'Thank you for your message. An attorney will review this shortly.';
+    const responseText =
+      agentResponse.content ||
+      agentResponse.message ||
+      'Gracias por tu mensaje. Un abogado del equipo lo revisará en breve.';
 
     // Return ManyChat format
     res.json({
@@ -170,6 +174,9 @@ app.post('/manychat/qualify', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// Telegram webhook
+app.post('/telegram/webhook', handleTelegramUpdate);
 
 // Helper: Store conversation in Supermemory
 async function storeConversation(contactName, message, channel, metadata) {
@@ -222,10 +229,24 @@ async function storeQualification(subscriberId, reason, contactInfo) {
 }
 
 // Helper: Notify Telegram #replies
-async function notifyTelegramReply(contactName, message, channel) {
+async function notifyTelegramReply(contactName, message, channel, subscriberId) {
   try {
-    const text = `📨 **[${channel.toUpperCase()}]** from *${contactName}*\n\n${message}`;
-    
+    const text =
+      `📨 **[${channel.toUpperCase()}]** de *${contactName}*\n\n` +
+      `"${message}"\n\n` +
+      `━━━━━━━━━━━━━━━━━━━━━`;
+
+    const replyMarkup = subscriberId
+      ? {
+          inline_keyboard: [
+            [
+              { text: '✍️ Redactar Respuesta', callback_data: `draft_reply:${subscriberId}` },
+              { text: '📋 Ver Estado', callback_data: `status:${subscriberId}` },
+            ],
+          ],
+        }
+      : undefined;
+
     await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -233,6 +254,7 @@ async function notifyTelegramReply(contactName, message, channel) {
         chat_id: TELEGRAM_REPLIES_CHAT_ID,
         text,
         parse_mode: 'Markdown',
+        ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
       }),
     });
   } catch (err) {
@@ -243,10 +265,10 @@ async function notifyTelegramReply(contactName, message, channel) {
 // Helper: Notify Telegram #qualified-leads
 async function notifyTelegramQualified(name, phone, reason, createInvite = false) {
   try {
-    let text = `🔥 **QUALIFIED LEAD**\n\n`;
-    text += `**Name:** ${name}\n`;
-    text += `**Phone:** ${phone || 'N/A'}\n`;
-    text += `**Reason:** ${reason}`;
+    let text = `🔥 **LEAD CALIFICADO**\n\n`;
+    text += `**Nombre:** ${name}\n`;
+    text += `**Teléfono:** ${phone || 'N/A'}\n`;
+    text += `**Motivo:** ${reason}`;
 
     if (createInvite) {
       const inviteResp = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/createChatInviteLink`, {
@@ -260,7 +282,7 @@ async function notifyTelegramQualified(name, phone, reason, createInvite = false
       
       const inviteData = await inviteResp.json();
       if (inviteData.ok) {
-        text += `\n\n📎 **Invite:** ${inviteData.result.invite_link}`;
+        text += `\n\n📎 **Invitación:** ${inviteData.result.invite_link}`;
       }
     }
 

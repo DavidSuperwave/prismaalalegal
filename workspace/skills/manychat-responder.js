@@ -14,6 +14,8 @@ class ManyChatResponder {
    * Generate response for incoming ManyChat message
    */
   async generateResponse(subscriber, message) {
+    this.slug = process.env.AGENT_SLUG || 'alalegal';
+
     // Get conversation history
     const history = await supermemory.getContactHistory(subscriber.phone || subscriber.email || subscriber.name);
     
@@ -28,9 +30,9 @@ class ManyChatResponder {
     
     if (isFirstMessage) {
       return this.formatResponse(
-        `Hello ${subscriber.name}! I'm the Prisma Legal intake assistant. ` +
-        `I can help you with questions about our services or schedule a consultation. ` +
-        `What brings you in today?`
+        `Hola ${subscriber.name || "ahí"}! Soy el asistente de admisión de ALA Legal. ` +
+        `Puedo ayudarte con dudas sobre nuestros servicios y para agendar una consulta. ` +
+        `¿Qué te trae por aquí hoy?`
       );
     }
 
@@ -60,6 +62,25 @@ class ManyChatResponder {
    */
   isQualifiedLead(message, sentiment) {
     const qualifiers = [
+      'consulta',
+      'cita',
+      'agendar',
+      'agenda',
+      'interesado',
+      'interesada',
+      'ayuda',
+      'urgente',
+      'accidente',
+      'lesión',
+      'lesion',
+      'fallecimiento',
+      'divorcio',
+      'custodia',
+      'detenido',
+      'arrestado',
+      'inmigración',
+      'inmigracion',
+      'demanda',
       'consultation',
       'appointment',
       'schedule',

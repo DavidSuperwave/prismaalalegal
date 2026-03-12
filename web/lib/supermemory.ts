@@ -17,7 +17,7 @@ function getHeaders() {
 }
 
 function getSlug() {
-  return process.env.AGENT_SLUG || getClientName().toLowerCase().replace(/\s+/g, "-");
+  return process.env.AGENT_SLUG || getClientName().toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
 export async function addSupermemoryDocument({

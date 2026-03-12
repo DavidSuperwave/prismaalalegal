@@ -8,6 +8,7 @@ type ConversationRow = {
   contact_phone: string | null;
   source: "manychat" | "telegram";
   sentiment: "positive" | "neutral" | "negative" | null;
+  manychat_subscriber_id: string | null;
 };
 
 type MessageRow = {
@@ -25,13 +26,14 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
   const conversation = db
     .prepare(
       `SELECT id, contact_name, contact_phone, source, sentiment
+      , manychat_subscriber_id
       FROM conversations
       WHERE id = ?`
     )
     .get(params.id) as ConversationRow | undefined;
 
   if (!conversation) {
-    return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
+    return NextResponse.json({ error: "Conversación no encontrada" }, { status: 404 });
   }
 
   const messages = db
@@ -50,6 +52,7 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
       id: conversation.id,
       contactName: conversation.contact_name,
       contactPhone: conversation.contact_phone || undefined,
+      manychatSubscriberId: conversation.manychat_subscriber_id || undefined,
       source: conversation.source,
       sentiment: conversation.sentiment || "neutral",
       messages: messages.map((message) => ({

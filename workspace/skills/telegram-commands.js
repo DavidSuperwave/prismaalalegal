@@ -84,7 +84,7 @@ class TelegramCommands {
 
     try {
       // Send message through ManyChat API
-      const response = await fetch(`${MANYCHAT_API_BASE}/fb/sending/sendMessage`, {
+      const response = await fetch(`${MANYCHAT_API_BASE}/fb/sending/sendContent`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${this.manychatKey}`,
@@ -92,10 +92,18 @@ class TelegramCommands {
         },
         body: JSON.stringify({
           subscriber_id: subscriberId,
-          message: {
-            type: 'text',
-            text: messageText,
-          }
+          data: {
+            version: 'v2',
+            content: {
+              messages: [
+                {
+                  type: 'text',
+                  text: messageText,
+                },
+              ],
+            },
+          },
+          message_tag: 'HUMAN_AGENT',
         }),
       });
 
@@ -162,7 +170,7 @@ class TelegramCommands {
         `👤 **Nombre:** ${lead.name}\n` +
         `📱 **Teléfono:** ${lead.phone || 'N/A'}\n` +
         `${statusEmoji[lead.status] || '🔹'} **Estado:** ${lead.status}\n` +
-        `📊 **Case Type:** ${lead.case_type || 'N/A'}\n` +
+        `📊 **Tipo de caso:** ${lead.case_type || 'N/A'}\n` +
         `🏷️ **Tags:** ${lead.tags || '[]'}\n` +
         `📝 **Notas:** ${lead.notes ? lead.notes.substring(0, 100) + '...' : 'N/A'}\n` +
         `📅 **Creado:** ${lead.created_at}\n` +
@@ -291,6 +299,7 @@ class TelegramCommands {
           role: 'user',
           content: `[TELEGRAM_ADMIN] ${from.first_name}: ${query}`,
           channel: 'telegram_admin',
+          containerTags: [`client:${process.env.AGENT_SLUG || 'alalegal'}:conversations`],
           metadata: {
             chat_id: chatId,
             user_name: from.first_name,

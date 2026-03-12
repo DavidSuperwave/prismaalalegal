@@ -3,11 +3,11 @@
 import { Bot, Sparkles } from "lucide-react";
 
 const SUGGESTED_QUERIES = [
-  "Show me today's new leads",
-  "Draft a follow-up for Maria Garcia",
-  "What cases need attention this week?",
-  "Summarize my inbox from ManyChat",
-  "Qualify the latest inbound contacts",
+  "Muéstrame los leads nuevos de hoy",
+  "Redacta seguimiento para María García",
+  "¿Qué casos necesitan atención esta semana?",
+  "Resume mi bandeja de ManyChat",
+  "Califica los contactos más recientes",
 ];
 
 export function ChatWelcome({ onSuggestionClick }: { onSuggestionClick: (value: string) => void }) {
@@ -16,10 +16,10 @@ export function ChatWelcome({ onSuggestionClick }: { onSuggestionClick: (value: 
       <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl border border-blue-200 bg-blue-50">
         <Bot className="h-8 w-8 text-blue-700" />
       </div>
-      <h1 className="mb-3 text-3xl font-semibold text-stone-900">What can I help with?</h1>
+      <h1 className="mb-3 text-3xl font-semibold text-stone-900">¿En qué te ayudo?</h1>
       <p className="mb-8 max-w-xl text-center text-stone-500">
-        Ask SUPERWAVE to review pipeline activity, summarize ManyChat conversations, or draft the
-        next action for a lead.
+        Pide al agente de ALA Legal revisar el pipeline, resumir conversaciones de ManyChat o redactar
+        la siguiente acción para un lead.
       </p>
       <div className="flex max-w-3xl flex-wrap justify-center gap-2">
         {SUGGESTED_QUERIES.map((suggestion) => (

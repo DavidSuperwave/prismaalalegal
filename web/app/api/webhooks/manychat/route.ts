@@ -6,10 +6,10 @@ import { addSupermemoryDocument } from "@/lib/supermemory";
 
 function detectSentiment(text: string): "positive" | "neutral" | "negative" {
   const normalized = text.toLowerCase();
-  if (/(help|interested|ready|yes|consulta|consultation|need)/.test(normalized)) {
+  if (/(ayuda|interesad|listo|sí|si|consulta|consultation|need|help|interested|ready|yes)/.test(normalized)) {
     return "positive";
   }
-  if (/(angry|upset|no|stop|bad)/.test(normalized)) {
+  if (/(molesto|enojad|no|alto|mal|angry|upset|stop|bad)/.test(normalized)) {
     return "negative";
   }
   return "neutral";
@@ -20,7 +20,7 @@ export async function POST(request: Request) {
   const configuredSecret = process.env.MANYCHAT_WEBHOOK_SECRET;
 
   if (configuredSecret && secret !== configuredSecret) {
-    return NextResponse.json({ error: "Invalid webhook secret" }, { status: 401 });
+    return NextResponse.json({ error: "Secreto de webhook inválido" }, { status: 401 });
   }
 
   const { subscriber, message } = (await request.json()) as {
@@ -36,12 +36,12 @@ export async function POST(request: Request) {
   };
 
   if (!subscriber || !message?.text?.trim()) {
-    return NextResponse.json({ error: "Missing subscriber or message" }, { status: 400 });
+    return NextResponse.json({ error: "Faltan subscriber o message" }, { status: 400 });
   }
 
   const db = getDb();
   const now = nowIsoString();
-  const contactName = subscriber.name?.trim() || "Unknown Contact";
+  const contactName = subscriber.name?.trim() || "Contacto desconocido";
   const messageText = message.text.trim();
   const sentiment = detectSentiment(messageText);
 
@@ -71,7 +71,7 @@ export async function POST(request: Request) {
       name: contactName,
       email: subscriber.email || null,
       phone: subscriber.phone || null,
-      last_action: "Inbound ManyChat message received",
+      last_action: "Mensaje entrante de ManyChat recibido",
       last_action_at: now,
       tags: JSON.stringify(["manychat", sentiment]),
       manychat_subscriber_id: subscriber.id || null,
@@ -99,7 +99,7 @@ export async function POST(request: Request) {
             email = COALESCE(@email, email),
             phone = COALESCE(@phone, phone),
             source = 'manychat',
-            last_action = 'Inbound ManyChat message received',
+            last_action = 'Mensaje entrante de ManyChat recibido',
             last_action_at = @last_action_at,
             updated_at = @updated_at
         WHERE id = @id`
@@ -200,7 +200,7 @@ export async function POST(request: Request) {
   }).catch(() => undefined);
 
   let responseText =
-    "Thank you for reaching out. Our team has received your message and will follow up shortly.";
+    "Gracias por escribirnos. Nuestro equipo recibió tu mensaje y dará seguimiento en breve.";
 
   try {
     const openClawResponse = await fetch(`${getOpenClawUrl()}/api/message`, {
