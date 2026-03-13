@@ -2,9 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getDb } from "@/lib/db";
 import { callOpenClaw } from "@/lib/openclaw-client";
-import { searchSupermemory } from "@/lib/supermemory";
-
-const AGENT_LEARNINGS_TAG = `agent:${process.env.AGENT_SLUG || "[REDACTED]"}:learnings`;
+import { TAGS, searchMemory, searchSupermemory } from "@/lib/supermemory";
 
 type SupermemoryRecord = { content?: string };
 
@@ -99,11 +97,12 @@ export async function POST(request: Request) {
             .join("\n");
       }
 
-      const learnings = await searchSupermemory({
-        query: `${conversation.contact_name}\n${recentMessages[0]?.content || ""}`,
-        containerTag: AGENT_LEARNINGS_TAG,
-        limit: 5,
-      });
+      const learnings = await searchMemory(
+        `${conversation.contact_name}\n${recentMessages[0]?.content || ""}`,
+        TAGS.SHARED,
+        { AND: [{ key: "type", value: "draft_correction" }] },
+        5
+      );
 
       const learningList: SupermemoryRecord[] = Array.isArray(learnings)
         ? learnings

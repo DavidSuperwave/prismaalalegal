@@ -7,7 +7,6 @@ import { sendToAgent } from "@/lib/openclaw-client";
 const WEBHOOK_SECRET = process.env.MANYCHAT_WEBHOOK_SECRET;
 const TELEGRAM_BOT_TOKEN_LEADS = process.env.TELEGRAM_BOT_TOKEN_LEADS || process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_REPLIES_CHAT_ID = process.env.TELEGRAM_REPLIES_CHAT_ID;
-const MANYCHAT_AUTO_REPLY = process.env.MANYCHAT_AUTO_REPLY || "Gracias por tu mensaje. Un asesor te atendera en breve.";
 
 type WebhookPayload = {
   subscriber?: {
@@ -79,12 +78,7 @@ function manyChatAck() {
   return NextResponse.json({
     version: "v2",
     content: {
-      messages: [
-        {
-          type: "text",
-          text: MANYCHAT_AUTO_REPLY,
-        },
-      ],
+      messages: [],
     },
   });
 }
@@ -125,7 +119,7 @@ export async function POST(request: Request) {
 
     if (!lead) {
       db.prepare(
-        `INSERT INTO leads (name, email, phone, source, status, manychat_subscriber_id, created_at, updated_at)
+        `INSERT OR IGNORE INTO leads (name, email, phone, source, status, manychat_subscriber_id, created_at, updated_at)
          VALUES (?, ?, ?, 'manychat', 'new', ?, ?, ?)`
       ).run(contactName, subscriber.email || null, subscriber.phone || null, subscriber.id, now, now);
 
@@ -246,8 +240,7 @@ export async function GET() {
   return NextResponse.json({
     status: "ok",
     mode: "acknowledge-draft-approve",
-    auto_reply: true,
-    auto_reply_text: MANYCHAT_AUTO_REPLY,
+    auto_reply: false,
     notifications: ["leads-inbox-agent", "telegram-leads-channel"],
     timestamp: new Date().toISOString(),
   });

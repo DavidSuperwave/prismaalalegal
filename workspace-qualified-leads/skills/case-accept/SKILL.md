@@ -7,3 +7,7 @@ When operator enters `/caseaccept` for a flagged lead.
 1. Update lead `pipeline_stage=accepted` via CRM API.
 2. Store shared Supermemory decision (`type=case_decision`, `decision=accepted`).
 3. Return confirmation including lead identifier.
+
+## Invocation formats
+- Slash command: `/caseaccept <lead_id>`
+- Structured params: `{ leadId, leadPhone, leadName, practiceArea, scenario, keyFactors, confidence }`

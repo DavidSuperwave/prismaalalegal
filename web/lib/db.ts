@@ -34,7 +34,7 @@ function initializeSchema(database: Database.Database) {
       notes TEXT,
       assigned_to TEXT,
       tags TEXT DEFAULT '[]',
-      opportunity_value REAL DEFAULT 0,
+      opportunity_value INTEGER DEFAULT NULL,
       manychat_subscriber_id TEXT,
       telegram_chat_id TEXT,
       supermemory_id TEXT,
@@ -97,9 +97,18 @@ function initializeSchema(database: Database.Database) {
   `);
 
   try {
-    database.exec("ALTER TABLE leads ADD COLUMN opportunity_value REAL DEFAULT 0");
+    database.exec("ALTER TABLE leads ADD COLUMN opportunity_value INTEGER DEFAULT NULL");
   } catch {
     // Column already exists; ignore for idempotent startup.
+  }
+
+  try {
+    database.exec(
+      "CREATE UNIQUE INDEX IF NOT EXISTS idx_leads_subscriber_unique ON leads(manychat_subscriber_id) WHERE manychat_subscriber_id IS NOT NULL"
+    );
+  } catch (error) {
+    // Existing duplicate data can temporarily block this migration on older local DBs.
+    console.warn("[DB] Could not create unique index idx_leads_subscriber_unique:", error);
   }
 }
 

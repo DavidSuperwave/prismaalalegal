@@ -11,9 +11,22 @@ module.exports = {
   name: "case-accept",
   description: "Accept qualified case and update learning memory",
 
-  async execute({ leadId, leadPhone, leadName, practiceArea, scenario, keyFactors, confidence = "medium" }) {
+  async execute(input = {}) {
+    const command = typeof input.command === "string" ? input.command.trim() : "";
+    const commandLeadId = command.toLowerCase().startsWith("/caseaccept")
+      ? command.split(/\s+/).slice(1)[0]
+      : undefined;
+
+    const leadId = input.leadId || input.context?.leadId || commandLeadId;
+    const leadPhone = input.leadPhone || input.context?.leadPhone;
+    const leadName = input.leadName || input.context?.leadName;
+    const practiceArea = input.practiceArea || input.context?.practiceArea;
+    const scenario = input.scenario || input.context?.scenario;
+    const keyFactors = input.keyFactors || input.context?.keyFactors;
+    const confidence = input.confidence || input.context?.confidence || "medium";
+
     if (!leadId) {
-      throw new Error("leadId is required for /caseaccept");
+      throw new Error("leadId is required for /caseaccept. Use '/caseaccept <lead_id>' or provide structured params.");
     }
 
     await requestJson(`${WEB_APP_URL}/api/crm/leads/${leadId}`, {
@@ -26,12 +39,12 @@ module.exports = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        leadPhone: leadPhone || "",
-        leadName: leadName || "",
-        practiceArea: practiceArea || "unknown",
-        scenario: scenario || "",
+        leadPhone: String(leadPhone || ""),
+        leadName: String(leadName || ""),
+        practiceArea: String(practiceArea || "unknown"),
+        scenario: String(scenario || ""),
         decision: "accepted",
-        keyFactors: keyFactors || "",
+        keyFactors: String(keyFactors || ""),
         confidenceWas: confidence,
       }),
     });

@@ -126,7 +126,7 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
           notes: row.lead_notes || "",
           assignedTo: row.lead_assigned_to || undefined,
           tags: parseJsonArray(row.lead_tags),
-          opportunityValue: row.lead_opportunity_value ?? 0,
+          opportunityValue: row.lead_opportunity_value ?? null,
         }
       : null,
     activity,

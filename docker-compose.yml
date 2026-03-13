@@ -12,7 +12,6 @@ services:
       - ./workspace-operator:/home/node/.openclaw/workspace-operator:ro
       - ./workspace-leads-inbox:/home/node/.openclaw/workspace-leads-inbox:ro
       - ./workspace-qualified-leads:/home/node/.openclaw/workspace-qualified-leads:ro
-      - ./workspace:/home/node/.openclaw/workspace:ro
     env_file: .env
     environment:
       - NODE_ENV=production

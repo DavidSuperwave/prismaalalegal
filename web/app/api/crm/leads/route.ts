@@ -21,19 +21,20 @@ type LeadRow = {
   supermemory_id: string | null;
 };
 
-function normalizeOpportunityValue(value: unknown, fallback = 0) {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return Math.max(0, value);
+function parseOpportunityValue(
+  value: unknown,
+  fallback: number | null
+): { ok: true; value: number | null } | { ok: false; error: string } {
+  if (value === undefined) {
+    return { ok: true, value: fallback };
   }
-
-  if (typeof value === "string") {
-    const parsed = Number(value);
-    if (Number.isFinite(parsed)) {
-      return Math.max(0, parsed);
-    }
+  if (value === null) {
+    return { ok: true, value: null };
   }
-
-  return fallback;
+  if (typeof value !== "number" || !Number.isFinite(value) || !Number.isInteger(value) || value < 0) {
+    return { ok: false, error: "opportunityValue must be a non-negative integer (cents) or null" };
+  }
+  return { ok: true, value };
 }
 
 function mapLead(row: LeadRow) {
@@ -50,7 +51,7 @@ function mapLead(row: LeadRow) {
     notes: row.notes || "",
     assignedTo: row.assigned_to || undefined,
     tags: parseJsonArray(row.tags),
-    opportunityValue: row.opportunity_value ?? 0,
+    opportunityValue: row.opportunity_value ?? null,
     manychatSubscriberId: row.manychat_subscriber_id || undefined,
     telegramChatId: row.telegram_chat_id || undefined,
     supermemoryId: row.supermemory_id || undefined,
@@ -86,7 +87,7 @@ export async function POST(request: Request) {
     notes?: string;
     assignedTo?: string;
     tags?: string[];
-    opportunityValue?: number;
+    opportunityValue?: number | null;
     manychatSubscriberId?: string;
     telegramChatId?: string;
     supermemoryId?: string;
@@ -94,6 +95,10 @@ export async function POST(request: Request) {
 
   if (!body.name?.trim()) {
     return NextResponse.json({ error: "Lead name is required" }, { status: 400 });
+  }
+  const parsedOpportunityValue = parseOpportunityValue(body.opportunityValue, null);
+  if (!parsedOpportunityValue.ok) {
+    return NextResponse.json({ error: parsedOpportunityValue.error }, { status: 400 });
   }
 
   const db = getDb();
@@ -120,7 +125,7 @@ export async function POST(request: Request) {
       notes: body.notes || "",
       assigned_to: body.assignedTo || null,
       tags: JSON.stringify(body.tags || []),
-      opportunity_value: normalizeOpportunityValue(body.opportunityValue, 0),
+      opportunity_value: parsedOpportunityValue.value,
       manychat_subscriber_id: body.manychatSubscriberId || null,
       telegram_chat_id: body.telegramChatId || null,
       supermemory_id: body.supermemoryId || null,
