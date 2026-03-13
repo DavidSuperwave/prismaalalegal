@@ -81,8 +81,9 @@ export default function InboxPage() {
           void loadConversations();
         }}
         onStatusChanged={() => {
-          void loadConversations();
           setSelectedConversationId(null);
+          setSelectedConversation(null);
+          void loadConversations();
         }}
       />
     </div>
