@@ -13,11 +13,11 @@ const SUGGESTED_QUERIES = [
 export function ChatWelcome({ onSuggestionClick }: { onSuggestionClick: (value: string) => void }) {
   return (
     <div className="flex h-full flex-col items-center justify-center px-6 py-12">
-      <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl border border-[#818CF8]/20 bg-[#818CF8]/10">
-        <Bot className="h-8 w-8 text-[#818CF8]" />
+      <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl border border-[var(--color-primary)] bg-[var(--color-primary-glow)]">
+        <Bot className="h-8 w-8 text-[var(--color-primary)]" />
       </div>
-      <h1 className="mb-3 font-display text-3xl font-semibold text-[#E8E8ED]">What can I help with?</h1>
-      <p className="mb-8 max-w-xl text-center text-[#8888A0]">
+      <h1 className="mb-3 font-display text-3xl font-semibold text-[var(--color-text)]">What can I help with?</h1>
+      <p className="mb-8 max-w-xl text-center text-[var(--color-text-muted)]">
         Ask PrismaProject to review pipeline activity, summarize ManyChat conversations, or draft the
         next action for a lead.
       </p>
@@ -26,7 +26,7 @@ export function ChatWelcome({ onSuggestionClick }: { onSuggestionClick: (value: 
           <button
             key={suggestion}
             onClick={() => onSuggestionClick(suggestion)}
-            className="inline-flex items-center gap-2 rounded-full border border-[#333340] bg-[#0E0E12] px-4 py-2 text-sm text-[#8888A0] transition hover:border-[#818CF8]/30 hover:bg-[#818CF8]/10 hover:text-[#818CF8]"
+            className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-sm text-[var(--color-text-muted)] transition hover:border-[var(--color-primary)] hover:bg-[var(--color-primary-glow)] hover:text-[var(--color-primary)]"
           >
             <Sparkles className="h-4 w-4" />
             {suggestion}

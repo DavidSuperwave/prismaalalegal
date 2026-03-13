@@ -34,6 +34,7 @@ function initializeSchema(database: Database.Database) {
       notes TEXT,
       assigned_to TEXT,
       tags TEXT DEFAULT '[]',
+      opportunity_value REAL DEFAULT 0,
       manychat_subscriber_id TEXT,
       telegram_chat_id TEXT,
       supermemory_id TEXT,
@@ -73,6 +74,12 @@ function initializeSchema(database: Database.Database) {
     CREATE INDEX IF NOT EXISTS idx_conversations_subscriber ON conversations(manychat_subscriber_id);
     CREATE INDEX IF NOT EXISTS idx_messages_conversation_id ON messages(conversation_id, timestamp ASC);
   `);
+
+  try {
+    database.exec("ALTER TABLE leads ADD COLUMN opportunity_value REAL DEFAULT 0");
+  } catch {
+    // Column already exists; ignore for idempotent startup.
+  }
 }
 
 export function getDb() {

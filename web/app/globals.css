@@ -3,7 +3,51 @@
 @tailwind utilities;
 
 :root {
-  /* Surfaces */
+  /* Surfaces (Regular mode) */
+  --background: 245 247 251;
+  --foreground: 24 26 35;
+  --card: 255 255 255;
+  --muted: 238 241 248;
+  --muted-foreground: 93 102 124;
+  --border: 203 211 225;
+  --ring: 91 97 214;
+
+  /* Prisma Tokens */
+  --color-bg: #f5f7fb;
+  --color-surface: #ffffff;
+  --color-surface-2: #f7f8fc;
+  --color-surface-offset: #eef1f8;
+  --color-surface-dynamic: #e6eaf4;
+  --color-divider: #d9deea;
+  --color-border: #cbd3e1;
+  --color-text: #181a23;
+  --color-text-muted: #5d667c;
+  --color-text-faint: #8a92a8;
+  --color-text-inverse: #f5f7fb;
+  --color-primary: #5b61d6;
+  --color-primary-hover: #4b51c7;
+  --color-primary-active: #3f44ae;
+  --color-primary-glow: rgba(91, 97, 214, 0.16);
+  --color-amber: #d68a00;
+  --color-amber-hover: #b47400;
+  --color-violet: #7b63d6;
+  --color-success: #0f9f6e;
+  --color-error: #d94b64;
+  --color-warning: #d68a00;
+  --font-display: 'Space Grotesk', 'Inter', sans-serif;
+  --font-body: 'Inter', 'Helvetica Neue', sans-serif;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --shadow-sm: 0 1px 2px rgba(12, 24, 48, 0.08);
+  --shadow-md: 0 8px 20px rgba(12, 24, 48, 0.12);
+  --shadow-lg: 0 20px 40px rgba(12, 24, 48, 0.16);
+  --transition-interactive: 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dark {
+  /* Surfaces (Dark mode) */
   --background: 8 8 10;
   --foreground: 232 232 237;
   --card: 14 14 18;
@@ -13,47 +57,45 @@
   --ring: 129 140 248;
 
   /* Prisma Tokens */
-  --color-bg: #08080A;
-  --color-surface: #0E0E12;
+  --color-bg: #08080a;
+  --color-surface: #0e0e12;
   --color-surface-2: #141418;
-  --color-surface-offset: #1A1A20;
+  --color-surface-offset: #1a1a20;
   --color-surface-dynamic: #222228;
-  --color-divider: #2A2A32;
+  --color-divider: #2a2a32;
   --color-border: #333340;
-  --color-text: #E8E8ED;
-  --color-text-muted: #8888A0;
-  --color-text-faint: #55556A;
-  --color-text-inverse: #08080A;
-  --color-primary: #818CF8;
-  --color-primary-hover: #6366F1;
-  --color-primary-active: #4F46E5;
+  --color-text: #e8e8ed;
+  --color-text-muted: #8888a0;
+  --color-text-faint: #55556a;
+  --color-text-inverse: #08080a;
+  --color-primary: #818cf8;
+  --color-primary-hover: #6366f1;
+  --color-primary-active: #4f46e5;
   --color-primary-glow: rgba(129, 140, 248, 0.15);
-  --color-amber: #F59E0B;
-  --color-amber-hover: #D97706;
-  --color-violet: #A78BFA;
-  --color-success: #34D399;
-  --color-error: #F87171;
-  --color-warning: #FBBF24;
-  --font-display: 'Space Grotesk', 'Inter', sans-serif;
-  --font-body: 'Inter', 'Helvetica Neue', sans-serif;
-  --radius-sm: 0.375rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
-  --radius-xl: 1rem;
-  --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
-  --shadow-md: 0 4px 12px rgba(0,0,0,0.5);
-  --shadow-lg: 0 12px 32px rgba(0,0,0,0.6);
-  --transition-interactive: 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  --color-amber: #f59e0b;
+  --color-amber-hover: #d97706;
+  --color-violet: #a78bfa;
+  --color-success: #34d399;
+  --color-error: #f87171;
+  --color-warning: #fbbf24;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.6);
 }
 
 * { border-color: rgb(var(--border)); }
 
-html { height: 100%; }
+html {
+  height: 100%;
+  color-scheme: light;
+}
+
+html.dark { color-scheme: dark; }
 
 body {
   min-height: 100%;
   color: var(--color-text);
-  background: radial-gradient(circle at top, rgba(129,140,248,0.08), transparent 32%), var(--color-bg);
+  background: radial-gradient(circle at top, var(--color-primary-glow), transparent 32%), var(--color-bg);
   font-family: var(--font-body);
   font-size: 1rem;
   line-height: 1.6;
@@ -73,7 +115,7 @@ body {
 @layer components {
   .glass-card {
     backdrop-filter: blur(12px);
-    background: rgba(14, 14, 18, 0.9);
+    background: rgb(var(--card) / 0.9);
     border: 1px solid var(--color-border);
     box-shadow: var(--shadow-lg);
   }
@@ -83,8 +125,8 @@ body {
   .prose-chat pre {
     overflow-x: auto;
     border-radius: var(--radius-lg);
-    background: #0A0A0F;
-    color: #E8E8ED;
+    background: var(--color-surface-offset);
+    color: var(--color-text);
     padding: 0.75rem;
     border: 1px solid var(--color-divider);
   }

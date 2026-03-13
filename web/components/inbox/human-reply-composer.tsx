@@ -16,6 +16,7 @@ type ComposerMode = "manual" | "agent";
 
 export function HumanReplyComposer({ conversationId, contactName, onReplySent }: HumanReplyComposerProps) {
   const [message, setMessage] = useState("");
+  const [originalDraft, setOriginalDraft] = useState<string | null>(null);
   const [mode, setMode] = useState<ComposerMode>("manual");
   const [isSending, setIsSending] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -37,6 +38,7 @@ export function HumanReplyComposer({ conversationId, contactName, onReplySent }:
         body: JSON.stringify({
           conversationId,
           message: trimmed,
+          originalDraft: originalDraft || undefined,
         }),
       });
 
@@ -46,6 +48,7 @@ export function HumanReplyComposer({ conversationId, contactName, onReplySent }:
       }
 
       setMessage("");
+      setOriginalDraft(null);
       setDraftContext("");
       setSent(true);
       setTimeout(() => setSent(false), 3000);
@@ -77,6 +80,7 @@ export function HumanReplyComposer({ conversationId, contactName, onReplySent }:
       }
 
       setMessage(data.draft);
+      setOriginalDraft(data.draft);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to generate draft");
     } finally {
@@ -92,9 +96,9 @@ export function HumanReplyComposer({ conversationId, contactName, onReplySent }:
   };
 
   return (
-    <div className="border-t border-[#2A2A32] bg-[#0E0E12] p-4">
+    <div className="border-t border-[var(--color-divider)] bg-[var(--color-surface)] p-4">
       <div className="mb-3 flex items-center justify-between">
-        <div className="flex items-center gap-1 rounded-lg bg-[#141418] p-1">
+        <div className="flex items-center gap-1 rounded-lg bg-[var(--color-surface-2)] p-1">
           <button
             onClick={() => {
               setMode("manual");
@@ -102,8 +106,8 @@ export function HumanReplyComposer({ conversationId, contactName, onReplySent }:
             }}
             className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
               mode === "manual"
-                ? "bg-[#0E0E12] text-[#E8E8ED] shadow-sm"
-                : "text-[#8888A0] hover:text-[#E8E8ED]"
+                ? "bg-[var(--color-surface)] text-[var(--color-text)] shadow-sm"
+                : "text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
             }`}
           >
             <Pencil className="h-3 w-3" />
@@ -116,8 +120,8 @@ export function HumanReplyComposer({ conversationId, contactName, onReplySent }:
             }}
             className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
               mode === "agent"
-                ? "bg-[#0E0E12] text-[#818CF8] shadow-sm"
-                : "text-[#8888A0] hover:text-[#E8E8ED]"
+                ? "bg-[var(--color-surface)] text-[var(--color-primary)] shadow-sm"
+                : "text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
             }`}
           >
             <Bot className="h-3 w-3" />
@@ -139,13 +143,13 @@ export function HumanReplyComposer({ conversationId, contactName, onReplySent }:
             value={draftContext}
             onChange={(e) => setDraftContext(e.target.value)}
             placeholder="Instrucción opcional: 'pregunta por la póliza', 'ofrece consulta gratis'..."
-            className="w-full rounded-md border border-[#2A2A32] bg-[#141418] px-3 py-2 text-xs text-[#E8E8ED] placeholder:text-[#55556A] focus:border-[#818CF8] focus:outline-none"
+            className="w-full rounded-md border border-[var(--color-divider)] bg-[var(--color-surface-2)] px-3 py-2 text-xs text-[var(--color-text)] placeholder:text-[var(--color-text-faint)] focus:border-[var(--color-primary)] focus:outline-none"
           />
           <Button
             onClick={handleGenerateDraft}
             disabled={isGenerating}
             variant="outline"
-            className="w-full gap-2 border-[#818CF8]/30 text-[#818CF8] hover:bg-[#818CF8]/10"
+            className="w-full gap-2 border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-primary-glow)]"
           >
             {isGenerating ? (
               <>
@@ -161,11 +165,39 @@ export function HumanReplyComposer({ conversationId, contactName, onReplySent }:
           </Button>
         </div>
       )}
+      {mode === "manual" && (
+        <div className="mb-2">
+          <Button
+            onClick={handleGenerateDraft}
+            disabled={isGenerating}
+            variant="outline"
+            className="w-full gap-2 border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-primary-glow)]"
+          >
+            {isGenerating ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Generando mensaje...
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4" />
+                Generar mensaje con IA
+              </>
+            )}
+          </Button>
+        </div>
+      )}
 
       <div className="space-y-2">
         <Textarea
           value={message}
-          onChange={(e) => setMessage(e.target.value)}
+          onChange={(e) => {
+            const nextValue = e.target.value;
+            setMessage(nextValue);
+            if (!nextValue.trim()) {
+              setOriginalDraft(null);
+            }
+          }}
           onKeyDown={handleKeyDown}
           placeholder={
             mode === "agent"
@@ -173,19 +205,19 @@ export function HumanReplyComposer({ conversationId, contactName, onReplySent }:
               : `Escribe tu respuesta para ${contactName}...`
           }
           disabled={isSending}
-          className="min-h-[80px] resize-none border-[#2A2A32] bg-[#141418] text-[#E8E8ED] placeholder:text-[#55556A] focus:border-[#818CF8] focus:ring-[#818CF8]/20"
+          className="min-h-[80px] resize-none border-[var(--color-divider)] bg-[var(--color-surface-2)] text-[var(--color-text)] placeholder:text-[var(--color-text-faint)] focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]"
         />
 
         {error && <div className="rounded-md bg-red-500/10 px-3 py-2 text-xs text-red-400">{error}</div>}
 
         <div className="flex items-center justify-between">
-          <span className="text-xs text-[#55556A]">
+          <span className="text-xs text-[var(--color-text-faint)]">
             {mode === "agent" && message ? "✏️ Edita el borrador y presiona Enviar" : "Ctrl+Enter para enviar"}
           </span>
           <Button
             onClick={() => void handleSend()}
             disabled={!message.trim() || isSending}
-            className="gap-2 bg-[#818CF8] text-[#08080A] hover:bg-[#6366F1] disabled:opacity-50"
+            className="gap-2 bg-[var(--color-primary)] text-[var(--color-text-inverse)] hover:bg-[var(--color-primary-hover)] disabled:opacity-50"
           >
             {isSending ? (
               <>

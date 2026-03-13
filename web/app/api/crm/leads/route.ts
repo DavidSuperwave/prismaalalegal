@@ -15,10 +15,26 @@ type LeadRow = {
   notes: string | null;
   assigned_to: string | null;
   tags: string;
+  opportunity_value: number | null;
   manychat_subscriber_id: string | null;
   telegram_chat_id: string | null;
   supermemory_id: string | null;
 };
+
+function normalizeOpportunityValue(value: unknown, fallback = 0) {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return Math.max(0, value);
+  }
+
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      return Math.max(0, parsed);
+    }
+  }
+
+  return fallback;
+}
 
 function mapLead(row: LeadRow) {
   return {
@@ -34,6 +50,7 @@ function mapLead(row: LeadRow) {
     notes: row.notes || "",
     assignedTo: row.assigned_to || undefined,
     tags: parseJsonArray(row.tags),
+    opportunityValue: row.opportunity_value ?? 0,
     manychatSubscriberId: row.manychat_subscriber_id || undefined,
     telegramChatId: row.telegram_chat_id || undefined,
     supermemoryId: row.supermemory_id || undefined,
@@ -46,7 +63,7 @@ export async function GET() {
     .prepare(
       `SELECT
         id, name, email, phone, source, status, case_type, last_action, last_action_at, notes,
-        assigned_to, tags, manychat_subscriber_id, telegram_chat_id, supermemory_id
+        assigned_to, tags, opportunity_value, manychat_subscriber_id, telegram_chat_id, supermemory_id
       FROM leads
       ORDER BY datetime(updated_at) DESC`
     )
@@ -69,6 +86,7 @@ export async function POST(request: Request) {
     notes?: string;
     assignedTo?: string;
     tags?: string[];
+    opportunityValue?: number;
     manychatSubscriberId?: string;
     telegramChatId?: string;
     supermemoryId?: string;
@@ -84,10 +102,10 @@ export async function POST(request: Request) {
     .prepare(
       `INSERT INTO leads (
         name, email, phone, source, status, case_type, last_action, last_action_at, notes,
-        assigned_to, tags, manychat_subscriber_id, telegram_chat_id, supermemory_id, created_at, updated_at
+        assigned_to, tags, opportunity_value, manychat_subscriber_id, telegram_chat_id, supermemory_id, created_at, updated_at
       ) VALUES (
         @name, @email, @phone, @source, @status, @case_type, @last_action, @last_action_at, @notes,
-        @assigned_to, @tags, @manychat_subscriber_id, @telegram_chat_id, @supermemory_id, @created_at, @updated_at
+        @assigned_to, @tags, @opportunity_value, @manychat_subscriber_id, @telegram_chat_id, @supermemory_id, @created_at, @updated_at
       )`
     )
     .run({
@@ -102,6 +120,7 @@ export async function POST(request: Request) {
       notes: body.notes || "",
       assigned_to: body.assignedTo || null,
       tags: JSON.stringify(body.tags || []),
+      opportunity_value: normalizeOpportunityValue(body.opportunityValue, 0),
       manychat_subscriber_id: body.manychatSubscriberId || null,
       telegram_chat_id: body.telegramChatId || null,
       supermemory_id: body.supermemoryId || null,
@@ -113,7 +132,7 @@ export async function POST(request: Request) {
     .prepare(
       `SELECT
         id, name, email, phone, source, status, case_type, last_action, last_action_at, notes,
-        assigned_to, tags, manychat_subscriber_id, telegram_chat_id, supermemory_id
+        assigned_to, tags, opportunity_value, manychat_subscriber_id, telegram_chat_id, supermemory_id
       FROM leads
       WHERE rowid = ?`
     )

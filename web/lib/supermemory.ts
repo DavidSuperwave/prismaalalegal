@@ -23,21 +23,29 @@ function getSlug() {
 export async function addSupermemoryDocument({
   content,
   containerSuffix,
+  containerTag,
   metadata,
 }: {
   content: string;
-  containerSuffix: string;
+  containerSuffix?: string;
+  containerTag?: string;
   metadata?: Record<string, unknown>;
 }) {
   const headers = getHeaders();
   if (!headers) return null;
+  const resolvedContainerTag =
+    containerTag || (containerSuffix ? `client:${getSlug()}:${containerSuffix}` : null);
+
+  if (!resolvedContainerTag) {
+    throw new Error("Supermemory add requires containerSuffix or containerTag");
+  }
 
   const response = await fetch(`${SUPERMEMORY_URL}/add`, {
     method: "POST",
     headers,
     body: JSON.stringify({
       content,
-      containerTags: [`client:${getSlug()}:${containerSuffix}`],
+      containerTags: [resolvedContainerTag],
       metadata,
     }),
   });
@@ -52,21 +60,29 @@ export async function addSupermemoryDocument({
 export async function searchSupermemory({
   query,
   containerSuffix,
+  containerTag,
   limit = 20,
 }: {
   query: string;
-  containerSuffix: string;
+  containerSuffix?: string;
+  containerTag?: string;
   limit?: number;
 }) {
   const headers = getHeaders();
   if (!headers) return [];
+  const resolvedContainerTag =
+    containerTag || (containerSuffix ? `client:${getSlug()}:${containerSuffix}` : null);
+
+  if (!resolvedContainerTag) {
+    throw new Error("Supermemory search requires containerSuffix or containerTag");
+  }
 
   const response = await fetch(`${SUPERMEMORY_URL}/search`, {
     method: "POST",
     headers,
     body: JSON.stringify({
       query,
-      containerTags: [`client:${getSlug()}:${containerSuffix}`],
+      containerTags: [resolvedContainerTag],
       limit,
     }),
   });

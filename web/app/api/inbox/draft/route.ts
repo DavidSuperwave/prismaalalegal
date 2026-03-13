@@ -4,6 +4,7 @@ import { getDb } from "@/lib/db";
 import { searchSupermemory } from "@/lib/supermemory";
 
 const OPENCLAW_GATEWAY_URL = process.env.OPENCLAW_GATEWAY_URL || "[REDACTED]";
+const AGENT_LEARNINGS_TAG = `agent:${process.env.AGENT_SLUG || "prismaalalegal"}:learnings`;
 
 type SupermemoryRecord = { content?: string };
 
@@ -21,7 +22,13 @@ export async function POST(request: Request) {
     const db = getDb();
     const conversation = db
       .prepare(
-        `SELECT c.id, c.contact_name, c.manychat_subscriber_id, l.case_type, l.status as lead_status
+        `SELECT
+          c.id,
+          c.contact_name,
+          c.manychat_subscriber_id,
+          l.case_type,
+          l.status as lead_status,
+          l.notes as lead_notes
         FROM conversations c
         LEFT JOIN leads l ON l.id = c.lead_id
         WHERE c.id = ?`
@@ -33,6 +40,7 @@ export async function POST(request: Request) {
           manychat_subscriber_id: string | null;
           case_type: string | null;
           lead_status: string | null;
+          lead_notes: string | null;
         }
       | undefined;
 
@@ -56,6 +64,10 @@ export async function POST(request: Request) {
       .join("\n");
 
     let memoryContext = "";
+    let learningsContext = "";
+    const opportunityContext = conversation.lead_status
+      ? `\n\nContexto CRM de oportunidad:\n- Etapa actual: ${conversation.lead_status}\n- Notas del lead: ${conversation.lead_notes?.trim() || "Sin notas"}`
+      : "";
     try {
       const memories = await searchSupermemory({
         query: recentMessages[0]?.content || conversation.contact_name,
@@ -77,13 +89,34 @@ export async function POST(request: Request) {
             .filter(Boolean)
             .join("\n");
       }
+
+      const learnings = await searchSupermemory({
+        query: `${conversation.contact_name}\n${recentMessages[0]?.content || ""}`,
+        containerTag: AGENT_LEARNINGS_TAG,
+        limit: 5,
+      });
+
+      const learningList: SupermemoryRecord[] = Array.isArray(learnings)
+        ? learnings
+        : Array.isArray((learnings as { results?: SupermemoryRecord[] })?.results)
+          ? (learnings as { results: SupermemoryRecord[] }).results
+          : [];
+
+      if (learningList.length > 0) {
+        learningsContext =
+          "\n\nAprendizajes previos del operador (aplicar cuando sea relevante):\n" +
+          learningList
+            .map((m) => m.content || "")
+            .filter(Boolean)
+            .join("\n");
+      }
     } catch {
       // Supermemory search is optional.
     }
 
     const prompt = context?.trim()
-      ? `[BORRADOR CON INSTRUCCIÓN] Contexto del operador: "${context.trim()}"\n\nHistorial:\n${messageHistory}${memoryContext}\n\nGenera una respuesta para ${conversation.contact_name} siguiendo las instrucciones de SOUL.md y considerando el contexto del operador.`
-      : `[BORRADOR] Historial de conversación con ${conversation.contact_name}:\n${messageHistory}${memoryContext}\n\nGenera la siguiente respuesta sugerida siguiendo las instrucciones de SOUL.md.`;
+      ? `[BORRADOR CON INSTRUCCIÓN] Contexto del operador: "${context.trim()}"\n\nHistorial:\n${messageHistory}${memoryContext}${learningsContext}${opportunityContext}\n\nGenera una respuesta para ${conversation.contact_name} siguiendo las instrucciones de SOUL.md y considerando el contexto del operador.`
+      : `[BORRADOR] Historial de conversación con ${conversation.contact_name}:\n${messageHistory}${memoryContext}${learningsContext}${opportunityContext}\n\nGenera la siguiente respuesta sugerida siguiendo las instrucciones de SOUL.md.`;
 
     let response: Response;
     try {
@@ -100,6 +133,7 @@ export async function POST(request: Request) {
             conversation_id: conversationId,
             case_type: conversation.case_type,
             lead_status: conversation.lead_status,
+            lead_notes: conversation.lead_notes || undefined,
           },
         }),
       });

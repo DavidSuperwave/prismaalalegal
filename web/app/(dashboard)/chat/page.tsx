@@ -37,9 +37,9 @@ export default function ChatPage() {
       />
 
       <section className="flex min-h-0 flex-1 flex-col">
-        <div className="border-b border-[#2A2A32] bg-[#0E0E12] px-6 py-4">
-          <h1 className="text-xl font-semibold text-[#E8E8ED]">Agent Chat</h1>
-          <p className="mt-1 text-sm text-[#8888A0]">
+        <div className="border-b border-[var(--color-divider)] bg-[var(--color-surface)] px-6 py-4">
+          <h1 className="text-xl font-semibold text-[var(--color-text)]">Agent Chat</h1>
+          <p className="mt-1 text-sm text-[var(--color-text-muted)]">
             Stream answers from OpenClaw and keep lightweight session history on the client.
           </p>
         </div>

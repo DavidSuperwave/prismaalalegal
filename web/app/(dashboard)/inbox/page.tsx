@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ConversationList,
   type ConversationThread,
+  type StatusFilter,
 } from "@/components/inbox/conversation-list";
 import {
   ConversationView,
@@ -13,16 +14,17 @@ import {
 
 export default function InboxPage() {
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("active");
   const [conversations, setConversations] = useState<ConversationThread[]>([]);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [selectedConversation, setSelectedConversation] = useState<ConversationDetail | null>(null);
 
   const loadConversations = useCallback(async () => {
-    const response = await fetch("/api/inbox/conversations", { cache: "no-store" });
+    const response = await fetch(`/api/inbox/conversations?status=${statusFilter}`, { cache: "no-store" });
     const data = (await response.json()) as { conversations: ConversationThread[] };
     setConversations(data.conversations || []);
     setSelectedConversationId((current) => current || data.conversations?.[0]?.id || null);
-  }, []);
+  }, [statusFilter]);
 
   const loadConversation = useCallback(async (conversationId: string) => {
     const response = await fetch(`/api/inbox/conversations/${conversationId}`, { cache: "no-store" });
@@ -64,6 +66,11 @@ export default function InboxPage() {
         conversations={filteredConversations}
         selectedConversationId={selectedConversationId}
         onSelectConversation={setSelectedConversationId}
+        statusFilter={statusFilter}
+        onStatusFilterChange={(filter) => {
+          setStatusFilter(filter);
+          setSelectedConversationId(null);
+        }}
       />
       <ConversationView
         conversation={selectedConversation}
@@ -72,6 +79,10 @@ export default function InboxPage() {
             void loadConversation(selectedConversationId);
           }
           void loadConversations();
+        }}
+        onStatusChanged={() => {
+          void loadConversations();
+          setSelectedConversationId(null);
         }}
       />
     </div>

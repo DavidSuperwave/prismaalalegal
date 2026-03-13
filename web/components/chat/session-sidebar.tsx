@@ -22,9 +22,9 @@ export function SessionSidebar({
   onDeleteSession,
 }: SessionSidebarProps) {
   return (
-    <div className="flex h-full w-72 flex-col border-r border-[#2A2A32] bg-[#0E0E12]">
-      <div className="flex items-center justify-between border-b border-[#2A2A32] p-4">
-        <h3 className="text-sm font-medium text-[#E8E8ED]">Chats</h3>
+    <div className="flex h-full w-72 flex-col border-r border-[var(--color-divider)] bg-[var(--color-surface)]">
+      <div className="flex items-center justify-between border-b border-[var(--color-divider)] p-4">
+        <h3 className="text-sm font-medium text-[var(--color-text)]">Chats</h3>
         <Button variant="ghost" size="sm" onClick={onNewChat}>
           <MessageSquarePlus className="mr-1 h-4 w-4" />
           New
@@ -33,7 +33,7 @@ export function SessionSidebar({
 
       <div className="flex-1 space-y-1 overflow-y-auto p-2">
         {sessions.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-[#333340] p-4 text-sm text-[#8888A0]">
+          <div className="rounded-lg border border-dashed border-[var(--color-border)] p-4 text-sm text-[var(--color-text-muted)]">
             No conversations yet. Start a new chat to create your first session.
           </div>
         ) : null}
@@ -44,13 +44,13 @@ export function SessionSidebar({
             className={cn(
               "group flex items-start gap-3 rounded-xl border px-3 py-3 transition",
               activeSessionId === session.id
-                ? "border-[#818CF8]/20 bg-[#818CF8]/10"
-                : "border-transparent hover:border-[#333340] hover:bg-[#1A1A20]"
+                ? "border-[var(--color-primary)] bg-[var(--color-primary-glow)]"
+                : "border-transparent hover:border-[var(--color-border)] hover:bg-[var(--color-surface-offset)]"
             )}
           >
             <button onClick={() => onSessionClick(session.id)} className="min-w-0 flex-1 text-left">
-              <p className="truncate text-sm font-medium text-[#E8E8ED]">{session.title}</p>
-              <p className="mt-1 text-xs text-[#8888A0]">
+              <p className="truncate text-sm font-medium text-[var(--color-text)]">{session.title}</p>
+              <p className="mt-1 text-xs text-[var(--color-text-muted)]">
                 {session.messageCount} messages • {new Date(session.updatedAt).toLocaleString()}
               </p>
             </button>
@@ -59,7 +59,7 @@ export function SessionSidebar({
               className="opacity-0 transition group-hover:opacity-100"
               title="Delete chat"
             >
-              <Trash2 className="h-4 w-4 text-[#55556A] hover:text-[#F87171]" />
+              <Trash2 className="h-4 w-4 text-[var(--color-text-faint)] hover:text-[var(--color-error)]" />
             </button>
           </div>
         ))}

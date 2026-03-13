@@ -5,6 +5,11 @@ import { addSupermemoryDocument } from "@/lib/supermemory";
 
 const MANYCHAT_API_KEY = process.env.MANYCHAT_API_KEY;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const AGENT_LEARNINGS_TAG = `agent:${process.env.AGENT_SLUG || "prismaalalegal"}:learnings`;
+
+function normalizeForComparison(text: string) {
+  return text.replace(/\s+/g, " ").trim();
+}
 
 async function sendManyChatMessage(
   subscriberId: string,
@@ -75,11 +80,13 @@ export async function POST(request: Request) {
       conversationId?: string;
       conversation_id?: string;
       message?: string;
+      originalDraft?: string;
       subscriber_id?: string;
     };
 
     const conversationId = body.conversationId?.trim() || body.conversation_id?.trim();
     const message = body.message?.trim();
+    const originalDraft = body.originalDraft?.trim();
 
     if (!conversationId || !message) {
       return NextResponse.json({ error: "conversationId and message are required" }, { status: 400 });
@@ -183,6 +190,29 @@ export async function POST(request: Request) {
           sent_via: "web",
           timestamp: now,
           type: "reply_example",
+        },
+      }).catch(() => undefined);
+    }
+
+    if (originalDraft && normalizeForComparison(originalDraft) !== normalizeForComparison(message)) {
+      await addSupermemoryDocument({
+        content:
+          `[CORRECCIÓN DE BORRADOR]\n` +
+          `Borrador IA: "${originalDraft}"\n` +
+          `Operador envió: "${message}"\n` +
+          `Contexto: conversación con ${conversation.contact_name}` +
+          (lastContactMessage?.content
+            ? `, último mensaje del contacto: "${lastContactMessage.content}"`
+            : ""),
+        containerTag: AGENT_LEARNINGS_TAG,
+        metadata: {
+          type: "draft_correction",
+          contact_name: conversation.contact_name,
+          conversation_id: conversationId,
+          channel: conversation.source,
+          sender: "human",
+          timestamp: now,
+          has_contact_message_context: Boolean(lastContactMessage?.content),
         },
       }).catch(() => undefined);
     }

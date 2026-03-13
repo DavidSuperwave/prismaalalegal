@@ -30,17 +30,27 @@ function mapConversation(row: ConversationRow) {
   };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const statusFilter = searchParams.get("status") || "active";
+
   const db = getDb();
-  const rows = db
-    .prepare(
-      `SELECT
-        id, contact_name, contact_phone, source, last_message, last_message_at, unread_count,
-        sentiment, lead_id, status
-      FROM conversations
-      ORDER BY datetime(last_message_at) DESC`
-    )
-    .all() as ConversationRow[];
+
+  let query = `SELECT
+    id, contact_name, contact_phone, source, last_message, last_message_at, unread_count,
+    sentiment, lead_id, status
+  FROM conversations`;
+
+  const args: string[] = [];
+
+  if (statusFilter === "active" || statusFilter === "archived") {
+    query += ` WHERE status = ?`;
+    args.push(statusFilter);
+  }
+
+  query += ` ORDER BY datetime(last_message_at) DESC`;
+
+  const rows = db.prepare(query).all(...args) as ConversationRow[];
 
   return NextResponse.json({ conversations: rows.map(mapConversation) });
 }

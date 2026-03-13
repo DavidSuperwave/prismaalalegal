@@ -15,6 +15,7 @@ export interface Lead {
   notes?: string;
   assignedTo?: string;
   tags: string[];
+  opportunityValue: number;
   manychatSubscriberId?: string;
   telegramChatId?: string;
   supermemoryId?: string;

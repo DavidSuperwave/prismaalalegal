@@ -1,25 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-
-function PrismaLogo() {
-  return (
-    <svg viewBox="0 0 200 60" fill="none" xmlns="http://www.w3.org/2000/svg" className="mx-auto mb-4 h-16 w-auto">
-      <path d="M30 8L50 48H10L30 8Z" stroke="#818CF8" strokeWidth="2.5" />
-      <path d="M30 18L40 40H20L30 18Z" stroke="#A78BFA" strokeWidth="1.5" opacity="0.6" />
-      <line x1="30" y1="8" x2="30" y2="48" stroke="url(#loginLogoGrad)" strokeWidth="1" opacity="0.3" />
-      <text x="62" y="36" fontFamily="'Space Grotesk', sans-serif" fontWeight="800" fontSize="22" fill="#E8E8ED" letterSpacing="-0.5">Prisma</text>
-      <text x="144" y="36" fontFamily="'Space Grotesk', sans-serif" fontWeight="400" fontSize="22" fill="#8888A0" letterSpacing="-0.5">Project</text>
-      <defs>
-        <linearGradient id="loginLogoGrad" x1="30" y1="8" x2="30" y2="48">
-          <stop offset="0%" stopColor="#818CF8" />
-          <stop offset="100%" stopColor="#F59E0B" />
-        </linearGradient>
-      </defs>
-    </svg>
-  );
-}
 
 export function LoginForm() {
   const router = useRouter();
@@ -71,7 +54,13 @@ export function LoginForm() {
       />
 
       <div className="relative z-10 flex w-full max-w-md flex-col items-center">
-        <PrismaLogo />
+        <Image
+          src="/prisma logo.png"
+          alt="Prisma Project"
+          width={200}
+          height={64}
+          className="mx-auto mb-4 h-16 w-auto object-contain"
+        />
         <p className="mb-6 text-sm text-[#8888A0]">Powered by PrismaProject</p>
 
         <div className="glass-card w-full rounded-2xl p-8">

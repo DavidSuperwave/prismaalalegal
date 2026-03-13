@@ -60,17 +60,17 @@ export function InboxChat({ conversationId }: InboxChatProps) {
   };
 
   return (
-    <div className="border-t border-[#2A2A32] bg-[#0E0E12]">
-      <div className="border-b border-[#2A2A32] px-4 py-3">
-        <div className="flex items-center gap-2 text-sm font-medium text-[#E8E8ED]">
-          <Bot className="h-4 w-4 text-[#818CF8]" />
+    <div className="border-t border-[var(--color-divider)] bg-[var(--color-surface)]">
+      <div className="border-b border-[var(--color-divider)] px-4 py-3">
+        <div className="flex items-center gap-2 text-sm font-medium text-[var(--color-text)]">
+          <Bot className="h-4 w-4 text-[var(--color-primary)]" />
           Conversation Copilot
         </div>
       </div>
 
       <div className="max-h-48 space-y-3 overflow-y-auto p-4">
         {messages.length === 0 ? (
-          <p className="text-sm text-[#8888A0]">
+          <p className="text-sm text-[var(--color-text-muted)]">
             Ask the agent to summarize the thread, draft a reply, or identify next steps.
           </p>
         ) : null}
@@ -80,8 +80,8 @@ export function InboxChat({ conversationId }: InboxChatProps) {
             <div
               className={
                 message.role === "user"
-                  ? "inline-block rounded-2xl bg-[#818CF8] px-3 py-2 text-sm text-[#08080A]"
-                  : "inline-block rounded-2xl border border-[#2A2A32] bg-[#141418] px-3 py-2 text-sm text-[#E8E8ED]"
+                  ? "inline-block rounded-2xl bg-[var(--color-primary)] px-3 py-2 text-sm text-[var(--color-text-inverse)]"
+                  : "inline-block rounded-2xl border border-[var(--color-divider)] bg-[var(--color-surface-2)] px-3 py-2 text-sm text-[var(--color-text)]"
               }
             >
               {message.content}
