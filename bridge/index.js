@@ -97,12 +97,7 @@ app.post("/manychat/webhook", async (req, res) => {
     return res.json({
       version: "v2",
       content: {
-        messages: [
-          {
-            type: "text",
-            text: process.env.MANYCHAT_AUTO_REPLY || "Gracias por tu mensaje. Un asesor te atendera en breve.",
-          },
-        ],
+        messages: [],
       },
     });
   } catch (error) {
