@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 
 import { getDb } from "@/lib/db";
+import { callOpenClaw } from "@/lib/openclaw-client";
 import { searchSupermemory } from "@/lib/supermemory";
 
-const OPENCLAW_GATEWAY_URL = process.env.OPENCLAW_GATEWAY_URL || "[REDACTED]";
-const AGENT_LEARNINGS_TAG = `agent:${process.env.AGENT_SLUG || "prismaalalegal"}:learnings`;
+const AGENT_LEARNINGS_TAG = `agent:${process.env.AGENT_SLUG || "[REDACTED]"}:learnings`;
 
 type SupermemoryRecord = { content?: string };
 
@@ -25,6 +25,7 @@ export async function POST(request: Request) {
         `SELECT
           c.id,
           c.contact_name,
+          c.status,
           c.manychat_subscriber_id,
           l.case_type,
           l.status as lead_status,
@@ -37,6 +38,7 @@ export async function POST(request: Request) {
       | {
           id: string;
           contact_name: string;
+          status: "active" | "archived";
           manychat_subscriber_id: string | null;
           case_type: string | null;
           lead_status: string | null;
@@ -46,6 +48,12 @@ export async function POST(request: Request) {
 
     if (!conversation) {
       return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
+    }
+    if (conversation.status === "archived") {
+      return NextResponse.json(
+        { error: "Conversation is archived. Unarchive before generating a draft." },
+        { status: 409 }
+      );
     }
 
     const recentMessages = db
@@ -60,7 +68,7 @@ export async function POST(request: Request) {
 
     const messageHistory = recentMessages
       .reverse()
-      .map((m) => `[${m.sender === "contact" ? conversation.contact_name : m.sender === "human" ? "Tú" : "Agente"}]: ${m.content}`)
+      .map((m) => `[${m.sender === "contact" ? conversation.contact_name : m.sender === "human" ? "Tu" : "Agente"}]: ${m.content}`)
       .join("\n");
 
     let memoryContext = "";
@@ -68,6 +76,7 @@ export async function POST(request: Request) {
     const opportunityContext = conversation.lead_status
       ? `\n\nContexto CRM de oportunidad:\n- Etapa actual: ${conversation.lead_status}\n- Notas del lead: ${conversation.lead_notes?.trim() || "Sin notas"}`
       : "";
+
     try {
       const memories = await searchSupermemory({
         query: recentMessages[0]?.content || conversation.contact_name,
@@ -111,53 +120,43 @@ export async function POST(request: Request) {
             .join("\n");
       }
     } catch {
-      // Supermemory search is optional.
+      // Supermemory context is best-effort for draft quality.
     }
 
     const prompt = context?.trim()
-      ? `[BORRADOR CON INSTRUCCIÓN] Contexto del operador: "${context.trim()}"\n\nHistorial:\n${messageHistory}${memoryContext}${learningsContext}${opportunityContext}\n\nGenera una respuesta para ${conversation.contact_name} siguiendo las instrucciones de SOUL.md y considerando el contexto del operador.`
-      : `[BORRADOR] Historial de conversación con ${conversation.contact_name}:\n${messageHistory}${memoryContext}${learningsContext}${opportunityContext}\n\nGenera la siguiente respuesta sugerida siguiendo las instrucciones de SOUL.md.`;
+      ? `[BORRADOR CON INSTRUCCION] Contexto del operador: "${context.trim()}"\n\nHistorial:\n${messageHistory}${memoryContext}${learningsContext}${opportunityContext}\n\nGenera una respuesta para ${conversation.contact_name} siguiendo las instrucciones de SOUL.md y considerando el contexto del operador.`
+      : `[BORRADOR] Historial de conversacion con ${conversation.contact_name}:\n${messageHistory}${memoryContext}${learningsContext}${opportunityContext}\n\nGenera la siguiente respuesta sugerida siguiendo las instrucciones de SOUL.md.`;
 
-    let response: Response;
-    try {
-      response = await fetch(`${OPENCLAW_GATEWAY_URL}/api/message`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          role: "user",
-          channel: "manychat",
-          content: prompt,
-          metadata: {
-            is_draft: true,
-            contact_name: conversation.contact_name,
-            conversation_id: conversationId,
-            case_type: conversation.case_type,
-            lead_status: conversation.lead_status,
-            lead_notes: conversation.lead_notes || undefined,
-          },
-        }),
-      });
-    } catch {
-      return NextResponse.json(
-        { error: "Failed to generate draft — OpenClaw may be unavailable" },
-        { status: 502 }
-      );
-    }
-
-    if (!response.ok) {
-      return NextResponse.json(
-        { error: "Failed to generate draft — OpenClaw may be unavailable" },
-        { status: 502 }
-      );
-    }
-
-    const data = (await response.json()) as {
+    const result = await callOpenClaw<{
       content?: string;
       message?: string;
       response?: string;
-    };
-    const draft = data.content || data.message || data.response;
+    }>("/api/message", {
+      role: "user",
+      channel: "manychat",
+      content: prompt,
+      metadata: {
+        is_draft: true,
+        contact_name: conversation.contact_name,
+        conversation_id: conversationId,
+        case_type: conversation.case_type,
+        lead_status: conversation.lead_status,
+        lead_notes: conversation.lead_notes || undefined,
+      },
+    });
 
+    if (!result.success || !result.data) {
+      return NextResponse.json(
+        {
+          error: "openclaw_unavailable",
+          message: "Draft generation temporarily unavailable. You can still send a manual reply.",
+          retryable: result.error?.retryable ?? true,
+        },
+        { status: 502 }
+      );
+    }
+
+    const draft = result.data.content || result.data.message || result.data.response;
     if (!draft) {
       return NextResponse.json({ error: "OpenClaw returned empty response" }, { status: 502 });
     }

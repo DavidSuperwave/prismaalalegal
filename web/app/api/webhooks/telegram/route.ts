@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { getDb, nowIsoString } from "@/lib/db";
 import { addSupermemoryDocument } from "@/lib/supermemory";
 
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN_OPERATOR || process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_REPLIES_CHAT_ID = process.env.TELEGRAM_REPLIES_CHAT_ID;
 const MANYCHAT_API_KEY = process.env.MANYCHAT_API_KEY;
 const OPENCLAW_GATEWAY_URL = process.env.OPENCLAW_GATEWAY_URL || "[REDACTED]";
