@@ -17,6 +17,7 @@ import {
 } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 
+import { formatCurrencyFromCents } from "@/lib/currency";
 import { useContacts, type Lead } from "@/lib/hooks/use-contacts";
 import { formatTimeAgo } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -31,14 +32,6 @@ const COLUMNS = [
   { id: "retained", label: "Retained", color: "#059669" },
   { id: "closed", label: "Closed/Lost", color: "#F87171" },
 ] as const;
-
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(value);
-}
 
 type ColumnId = (typeof COLUMNS)[number]["id"];
 type DndListeners = Record<string, ((event: unknown) => void) | undefined>;
@@ -92,7 +85,7 @@ function LeadCard({
       </div>
 
       <div className="mt-2 text-xs font-medium text-[var(--color-text)]">
-        {formatCurrency(lead.opportunityValue || 0)}
+        {formatCurrencyFromCents(lead.opportunityValue)}
       </div>
 
       {lead.tags.length > 0 ? (
@@ -220,7 +213,7 @@ export function PipelineKanban() {
     () =>
       leads
         .filter((lead) => lead.status !== "closed")
-        .reduce((sum, lead) => sum + (lead.opportunityValue || 0), 0),
+        .reduce((sum, lead) => sum + (lead.opportunityValue ?? 0), 0),
     [leads]
   );
 
@@ -277,7 +270,7 @@ export function PipelineKanban() {
               <h1 className="text-xl font-semibold text-[var(--color-text)]">CRM Pipeline</h1>
               <p className="mt-1 text-sm text-[var(--color-text-muted)]">
                 {leads.length} leads total • {leads.filter((lead) => lead.status === "new").length} new •{" "}
-                {formatCurrency(pipelineValue)} pipeline value
+                {formatCurrencyFromCents(pipelineValue)} pipeline value
               </p>
             </div>
             <Button onClick={() => setShowCreateModal(true)}>+ Add Lead</Button>

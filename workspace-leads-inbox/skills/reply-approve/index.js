@@ -39,6 +39,20 @@ async function markSent(replyId) {
   });
 }
 
+async function markSentWithRetry(replyId, retries = 3) {
+  let lastError = null;
+  for (let attempt = 1; attempt <= retries; attempt += 1) {
+    try {
+      await markSent(replyId);
+      return;
+    } catch (error) {
+      lastError = error;
+      await new Promise((resolve) => setTimeout(resolve, 300 * attempt));
+    }
+  }
+  throw lastError || new Error("Failed to persist reply status");
+}
+
 async function replyStatus(conversationId) {
   const query = new URLSearchParams({
     status: "pending",
@@ -90,7 +104,16 @@ module.exports = {
     }
 
     await sendReply(pending);
-    await markSent(pending.id);
-    return `Reply sent for conversation ${pending.conversation_id}.`;
+    try {
+      await markSentWithRetry(pending.id, 3);
+      return `Reply sent for conversation ${pending.conversation_id}.`;
+    } catch (error) {
+      console.error("[reply-approve] reply sent but status update failed", {
+        replyId: pending.id,
+        conversationId: pending.conversation_id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return `Reply sent for conversation ${pending.conversation_id}, but status persistence failed. Please review /replystatus.`;
+    }
   },
 };

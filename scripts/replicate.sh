@@ -1,125 +1,83 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 
-# replicate.sh — Clone template for new client
-# Usage: ./replicate.sh client-slug "Client Name"
+# replicate.sh — clone this repo into a new client-ready project.
+# Usage:
+#   ./scripts/replicate.sh client-slug "Client Name" ["Main Phone"] ["Location"]
 
 CLIENT_SLUG=${1:-}
 CLIENT_NAME=${2:-}
+CLIENT_PHONE=${3:-"81 1249 1200"}
+CLIENT_LOCATION=${4:-"Monterrey"}
 
-if [ -z "$CLIENT_SLUG" ] || [ -z "$CLIENT_NAME" ]; then
-    echo "Usage: ./replicate.sh client-slug \"Client Name\""
-    exit 1
+if [[ -z "$CLIENT_SLUG" || -z "$CLIENT_NAME" ]]; then
+  echo "Usage: ./scripts/replicate.sh client-slug \"Client Name\" [\"Main Phone\"] [\"Location\"]"
+  exit 1
 fi
 
-echo "🔄 Replicating template for $CLIENT_NAME..."
+SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+TARGET_DIR="$(cd "$SOURCE_DIR/.." && pwd)/superwave-${CLIENT_SLUG}"
 
-# Create new directory
-NEW_DIR="../superwave-$CLIENT_SLUG"
-if [ -d "$NEW_DIR" ]; then
-    echo "❌ Directory $NEW_DIR already exists"
-    exit 1
+if [[ -d "$TARGET_DIR" ]]; then
+  echo "❌ Target already exists: $TARGET_DIR"
+  exit 1
 fi
 
-cp -r . "$NEW_DIR"
-cd "$NEW_DIR"
-
-# Remove git history
+echo "🔄 Replicating template for ${CLIENT_NAME} (${CLIENT_SLUG})..."
+cp -r "$SOURCE_DIR" "$TARGET_DIR"
+cd "$TARGET_DIR"
 rm -rf .git
 
-# Update AGENT_SLUG in .env.example
-sed -i "s/AGENT_SLUG=prismaalalegal/AGENT_SLUG=$CLIENT_SLUG/g" .env.example
-sed -i "s/AGENT_NAME=Prisma Legal Agent/AGENT_NAME=$CLIENT_NAME Agent/g" .env.example
+TAG_BASE="${CLIENT_SLUG//-/_}"
+TAG_SHARED="${TAG_BASE}_shared"
+TAG_LEADS="${TAG_BASE}_leads"
+TAG_CASES="${TAG_BASE}_cases"
 
-# Update container names in docker-compose.yml
-sed -i "s/prismaalalegal/$CLIENT_SLUG/g" docker-compose.yml
+replace_literal_repo() {
+  local from="$1"
+  local to="$2"
+  rg -l --hidden \
+    --glob '!.git/**' \
+    --glob '!node_modules/**' \
+    --glob '!.next/**' \
+    --glob '!web/data/**' \
+    --glob '!*/package-lock.json' \
+    --fixed-strings "$from" . \
+    | while IFS= read -r file; do
+        perl -0pi -e "s/\Q$from\E/$to/g" "$file"
+      done
+}
 
-# Update workspace files
-cat > workspace/SOUL.md << EOF
-# SOUL.md — $CLIENT_NAME Agent
+# Canonical slug + tag scheme
+replace_literal_repo "[REDACTED]_shared" "$TAG_SHARED"
+replace_literal_repo "[REDACTED]_leads" "$TAG_LEADS"
+replace_literal_repo "[REDACTED]_cases" "$TAG_CASES"
+replace_literal_repo "Canonical Slug\`: [REDACTED]" "Canonical Slug\`: ${CLIENT_SLUG}"
+replace_literal_repo "AGENT_SLUG=[REDACTED]" "AGENT_SLUG=${CLIENT_SLUG}"
+replace_literal_repo "\`[REDACTED]\`" "\`${CLIENT_SLUG}\`"
 
-## Identity
+# Identity defaults
+replace_literal_repo "Prisma/ALA Legal" "$CLIENT_NAME"
+replace_literal_repo "81 1249 1200" "$CLIENT_PHONE"
+replace_literal_repo "Monterrey, Nuevo Leon, Mexico" "${CLIENT_LOCATION}, Mexico"
+replace_literal_repo "Monterrey" "$CLIENT_LOCATION"
 
-**Name:** $CLIENT_NAME Agent  
-**Role:** AI Intake Specialist  
-**Tone:** Professional, helpful, efficient  
-**Emoji:** 🤖
+# Env + naming
+sed -i "s/^AGENT_NAME=.*/AGENT_NAME=${CLIENT_NAME} Agent/" .env.example
+sed -i "s/^NEXT_PUBLIC_CLIENT_NAME=.*/NEXT_PUBLIC_CLIENT_NAME=${CLIENT_NAME}/" .env.example
+sed -i "s/^AUTH_NAME=.*/AUTH_NAME=${CLIENT_NAME} Admin/" .env.example
 
-## Purpose
+# openclaw.json names
+replace_literal_repo "\"name\": \"Operator Assistant\"" "\"name\": \"${CLIENT_NAME} Operator Assistant\""
+replace_literal_repo "\"name\": \"Leads Inbox SDR\"" "\"name\": \"${CLIENT_NAME} Leads Inbox SDR\""
+replace_literal_repo "\"name\": \"Case Qualifier\"" "\"name\": \"${CLIENT_NAME} Case Qualifier\""
 
-I am the first point of contact for $CLIENT_NAME.
-
-## Services Offered
-
-*Fill in your services here*
-
-## Qualification Criteria
-
-A lead is QUALIFIED when they have:
-- ✅ *Add your criteria*
-
-## Guardrails — NEVER
-
-- Never provide specific advice without attorney review
-- Never disparage competitors
-- Never share client information
-
-## Response Style
-
-- **Concise:** 2-3 sentences
-- **Structured:** Use bullet points
-- **Warm:** Acknowledge concerns
-- **Action-oriented:** Suggest next steps
-
----
-
-*Customize this file for $CLIENT_NAME*
-EOF
-
-cat > workspace/USER.md << EOF
-# USER.md — $CLIENT_NAME Context
-
-## About $CLIENT_NAME
-
-*Fill in company details*
-
-## Contact Information
-
-*Add phone, email, website*
-
-## Office Hours
-
-*Add hours*
-
-## Consultation Process
-
-*Add process*
-
-## Pricing Model
-
-*Add pricing*
-EOF
-
-echo "✅ Replicated to $NEW_DIR"
 echo ""
-echo "📝 HUMAN CHECKLIST — Fill these in:"
+echo "✅ Replicated to: $TARGET_DIR"
 echo ""
-echo "1. SOUL.md — Write agent personality"
-echo "2. workspace/USER.md — Add company context"
-echo "3. .env — Add all API keys:"
-echo "   - OPENROUTER_API_KEY"
-echo "   - SUPERMEMORY_API_KEY"
-echo "   - TELEGRAM_BOT_TOKEN_OPERATOR"
-echo "   - TELEGRAM_BOT_TOKEN_LEADS"
-echo "   - TELEGRAM_BOT_TOKEN_QUALIFIED"
-echo "   - OPERATOR_TELEGRAM_USER_ID"
-echo "   - TELEGRAM_BOT_TOKEN (optional legacy fallback)"
-echo "   - TELEGRAM_REPLIES_CHAT_ID"
-echo "   - TELEGRAM_LEADS_CHAT_ID"
-echo "   - MANYCHAT_API_KEY"
-echo "   - MANYCHAT_WEBHOOK_SECRET"
-echo "4. Create Telegram bot + groups"
-echo "5. Point domain DNS to droplet IP"
-echo "6. Deploy: ./scripts/deploy.sh clientdomain.com client@email.com"
-echo ""
-echo "Good luck with $CLIENT_NAME! 🚀"
+echo "🧭 Post-clone checklist:"
+echo "1. Fill .env values (all API keys + 3 Telegram bot tokens)."
+echo "2. Review workspace-operator/, workspace-leads-inbox/, workspace-qualified-leads/."
+echo "3. Verify openclaw.json Telegram account bindings and allowlist user ID."
+echo "4. Run: npm --prefix web install && npm --prefix web run validate:workspace"
+echo "5. Start services and run webhook + inbox flow tests."

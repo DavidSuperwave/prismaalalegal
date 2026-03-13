@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
 
 import { getDb, nowIsoString } from "@/lib/db";
-import { addSupermemoryDocument } from "@/lib/supermemory";
+import { TAGS, addSupermemoryDocument } from "@/lib/supermemory";
 
 const MANYCHAT_API_KEY = process.env.MANYCHAT_API_KEY;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN_OPERATOR || process.env.TELEGRAM_BOT_TOKEN;
-const AGENT_LEARNINGS_TAG = `agent:${process.env.AGENT_SLUG || "prismaalalegal"}:learnings`;
 
 function normalizeForComparison(text: string) {
   return text.replace(/\s+/g, " ").trim();
@@ -244,7 +243,7 @@ export async function POST(request: Request) {
             (lastContactMessage?.content
               ? `, último mensaje del contacto: "${lastContactMessage.content}"`
               : ""),
-          containerTag: AGENT_LEARNINGS_TAG,
+          containerTag: TAGS.SHARED[0],
           metadata: {
             type: "draft_correction",
             contact_name: conversation.contact_name,

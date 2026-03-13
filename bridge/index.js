@@ -13,18 +13,14 @@ app.use(express.json());
 
 const {
   MANYCHAT_WEBHOOK_SECRET,
-  SUPERMEMORY_API_KEY,
   TELEGRAM_BOT_TOKEN,
-  TELEGRAM_BOT_TOKEN_LEADS,
   TELEGRAM_BOT_TOKEN_QUALIFIED,
-  TELEGRAM_REPLIES_CHAT_ID,
   TELEGRAM_LEADS_CHAT_ID,
   OPENCLAW_GATEWAY_URL = "[REDACTED]",
   WEB_APP_INTERNAL_URL = "http://web:3000",
   PORT = 3300,
 } = process.env;
 
-const TELEGRAM_REPLIES_BOT_TOKEN = TELEGRAM_BOT_TOKEN_LEADS || TELEGRAM_BOT_TOKEN;
 const TELEGRAM_QUALIFIED_BOT_TOKEN = TELEGRAM_BOT_TOKEN_QUALIFIED || TELEGRAM_BOT_TOKEN;
 
 app.get("/health", async (req, res) => {
@@ -52,19 +48,6 @@ app.get("/health", async (req, res) => {
   res.json(checks);
 });
 
-async function notifyTelegramLead(contactName, messageText) {
-  if (!TELEGRAM_REPLIES_BOT_TOKEN || !TELEGRAM_REPLIES_CHAT_ID) return;
-  const text = `📨 [MANYCHAT] ${contactName}\n\n${messageText}`;
-  await fetch(`https://api.telegram.org/bot${TELEGRAM_REPLIES_BOT_TOKEN}/sendMessage`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      chat_id: TELEGRAM_REPLIES_CHAT_ID,
-      text,
-    }),
-  }).catch(() => undefined);
-}
-
 async function notifyTelegramQualified(name, phone, reason) {
   if (!TELEGRAM_QUALIFIED_BOT_TOKEN || !TELEGRAM_LEADS_CHAT_ID) return;
   const text = `🔥 QUALIFIED LEAD\n\nName: ${name}\nPhone: ${phone || "N/A"}\nReason: ${reason}`;
@@ -74,27 +57,6 @@ async function notifyTelegramQualified(name, phone, reason) {
     body: JSON.stringify({
       chat_id: TELEGRAM_LEADS_CHAT_ID,
       text,
-    }),
-  }).catch(() => undefined);
-}
-
-async function storeConversation(contactName, messageText, metadata) {
-  if (!SUPERMEMORY_API_KEY) return;
-  await fetch("https://api.supermemory.ai/v3/add", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${SUPERMEMORY_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      content: `[manychat] ${contactName}: ${messageText}`,
-      containerTags: ["[REDACTED]_shared"],
-      metadata: {
-        type: "conversation",
-        channel: "manychat",
-        timestamp: new Date().toISOString(),
-        ...metadata,
-      },
     }),
   }).catch(() => undefined);
 }
@@ -130,13 +92,6 @@ app.post("/manychat/webhook", async (req, res) => {
     if (!subscriber || !message?.text) {
       return res.status(400).json({ error: "Missing subscriber or message" });
     }
-
-    await storeConversation(subscriber.name || "Unknown", message.text, {
-      subscriber_id: subscriber.id,
-      subscriber_phone: subscriber.phone,
-      subscriber_email: subscriber.email,
-    });
-    await notifyTelegramLead(subscriber.name || "Unknown", message.text);
 
     return res.json({
       version: "v2",

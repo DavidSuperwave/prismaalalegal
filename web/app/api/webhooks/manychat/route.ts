@@ -125,7 +125,7 @@ export async function POST(request: Request) {
 
     if (!lead) {
       db.prepare(
-        `INSERT INTO leads (name, email, phone, source, status, manychat_subscriber_id, created_at, updated_at)
+        `INSERT OR IGNORE INTO leads (name, email, phone, source, status, manychat_subscriber_id, created_at, updated_at)
          VALUES (?, ?, ?, 'manychat', 'new', ?, ?, ?)`
       ).run(contactName, subscriber.email || null, subscriber.phone || null, subscriber.id, now, now);
 

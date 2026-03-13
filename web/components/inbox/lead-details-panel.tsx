@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { centsToDollarsInput, dollarsInputToCents, formatCurrencyFromCents } from "@/lib/currency";
 import { formatTimeAgo } from "@/lib/utils";
 
 type DetailsResponse = {
@@ -33,7 +34,7 @@ type DetailsResponse = {
     notes: string;
     assignedTo?: string;
     tags: string[];
-    opportunityValue: number;
+    opportunityValue: number | null;
   } | null;
   activity: Array<
     | {
@@ -91,7 +92,7 @@ export function LeadDetailsPanel({
   const [isSavingLead, setIsSavingLead] = useState(false);
   const [isCreatingLead, setIsCreatingLead] = useState(false);
   const [leadStatus, setLeadStatus] = useState<"new" | "contacted" | "qualified" | "consultation" | "retained" | "closed">("new");
-  const [leadOpportunityValue, setLeadOpportunityValue] = useState("0");
+  const [leadOpportunityValue, setLeadOpportunityValue] = useState("0.00");
   const [leadNotes, setLeadNotes] = useState("");
   const [createName, setCreateName] = useState("");
   const [createEmail, setCreateEmail] = useState("");
@@ -99,12 +100,15 @@ export function LeadDetailsPanel({
   const [createStatus, setCreateStatus] = useState<
     "new" | "contacted" | "qualified" | "consultation" | "retained" | "closed"
   >("new");
-  const [createOpportunityValue, setCreateOpportunityValue] = useState("0");
+  const [createOpportunityValue, setCreateOpportunityValue] = useState("0.00");
   const [createNotes, setCreateNotes] = useState("");
 
-  const parseNonNegativeNumber = (value: string) => {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+  const parseDollarsToCents = (value: string): number | null | "invalid" => {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    const parsed = Number(trimmed);
+    if (!Number.isFinite(parsed) || parsed < 0) return "invalid";
+    return dollarsInputToCents(trimmed);
   };
 
   const loadDetails = async (targetConversationId: string) => {
@@ -146,13 +150,13 @@ export function LeadDetailsPanel({
     if (details.lead) {
       setLeadStatus(details.lead.status);
       setLeadNotes(details.lead.notes || "");
-      setLeadOpportunityValue(String(details.lead.opportunityValue ?? 0));
+      setLeadOpportunityValue(centsToDollarsInput(details.lead.opportunityValue));
     } else {
       setCreateName(details.conversation.contactName || "");
       setCreatePhone(details.conversation.contactPhone || "");
       setCreateEmail("");
       setCreateStatus("new");
-      setCreateOpportunityValue("0");
+      setCreateOpportunityValue("0.00");
       setCreateNotes("");
     }
   }, [details]);
@@ -164,12 +168,17 @@ export function LeadDetailsPanel({
     setError(null);
     setSaveMessage(null);
     try {
+      const opportunityValueCents = parseDollarsToCents(leadOpportunityValue);
+      if (opportunityValueCents === "invalid") {
+        throw new Error("Valor de oportunidad invalido. Usa un monto en dolares no negativo.");
+      }
+
       const response = await fetch(`/api/crm/leads/${details.lead.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           status: leadStatus,
-          opportunityValue: parseNonNegativeNumber(leadOpportunityValue),
+          opportunityValue: opportunityValueCents,
           notes: leadNotes,
           lastAction: `Updated opportunity stage to ${leadStatus}`,
         }),
@@ -200,6 +209,11 @@ export function LeadDetailsPanel({
     setError(null);
     setSaveMessage(null);
     try {
+      const opportunityValueCents = parseDollarsToCents(createOpportunityValue);
+      if (opportunityValueCents === "invalid") {
+        throw new Error("Valor de oportunidad invalido. Usa un monto en dolares no negativo.");
+      }
+
       const createResponse = await fetch("/api/crm/leads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -209,7 +223,7 @@ export function LeadDetailsPanel({
           phone: createPhone.trim() || undefined,
           source: "manual",
           status: createStatus,
-          opportunityValue: parseNonNegativeNumber(createOpportunityValue),
+          opportunityValue: opportunityValueCents,
           notes: createNotes.trim(),
           lastAction: "Created from inbox details panel",
         }),
@@ -323,6 +337,7 @@ export function LeadDetailsPanel({
                     className="h-8 w-32 border-[#2A2A32] bg-[#101016] text-right text-xs text-[#E8E8ED]"
                   />
                 </div>
+                <DataRow label="Valor guardado" value={formatCurrencyFromCents(details.lead.opportunityValue)} />
                 <DataRow label="Tipo de caso" value={details.lead.caseType} />
                 <DataRow label="Email" value={details.lead.email} />
                 <DataRow label="Teléfono" value={details.lead.phone} />

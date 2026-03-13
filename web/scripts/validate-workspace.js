@@ -4,9 +4,10 @@ const path = require("path");
 
 const OPENCLAW_HOME = process.env.OPENCLAW_HOME || path.join(os.homedir(), ".openclaw");
 const REQUIRED_FILES = ["SOUL.md", "AGENTS.md", "USER.md"];
-const CANONICAL_SLUG = "[REDACTED]";
 const EXPECTED_PHONE = "81 1249 1200";
 const EXPECTED_LOCATION = "Monterrey";
+const REPO_ROOT = path.resolve(__dirname, "..", "..");
+const TENANT_PATH = path.join(REPO_ROOT, "TENANT.md");
 
 const WORKSPACES = [
   { id: "operator", dir: "workspace-operator" },
@@ -22,7 +23,15 @@ function readFileSafe(filePath) {
   }
 }
 
-function validateWorkspaceFiles(errors) {
+function parseCanonicalSlug() {
+  const fallback = process.env.AGENT_SLUG || "[REDACTED]";
+  const tenantContent = readFileSafe(TENANT_PATH);
+  if (!tenantContent) return fallback;
+  const match = tenantContent.match(/## Canonical Slug\s+`([^`]+)`/m);
+  return match?.[1]?.trim() || fallback;
+}
+
+function validateWorkspaceFiles(errors, canonicalSlug) {
   for (const workspace of WORKSPACES) {
     const workspacePath = path.join(OPENCLAW_HOME, workspace.dir);
     if (!fs.existsSync(workspacePath)) {
@@ -50,14 +59,17 @@ function validateWorkspaceFiles(errors) {
         errors.push(`[${workspace.id}/${fileName}] Found old identity markers (Prisma Legal Services/California)`);
       }
       if (fileName === "SOUL.md") {
-        if (!content.includes(CANONICAL_SLUG)) {
-          errors.push(`[${workspace.id}/SOUL.md] Missing canonical slug ${CANONICAL_SLUG}`);
+        if (!content.includes(canonicalSlug)) {
+          errors.push(`[${workspace.id}/SOUL.md] Missing canonical slug ${canonicalSlug}`);
         }
         if (!content.includes(EXPECTED_PHONE) && !content.includes("81-1249-1200")) {
           errors.push(`[${workspace.id}/SOUL.md] Missing expected phone ${EXPECTED_PHONE}`);
         }
         if (!content.includes(EXPECTED_LOCATION)) {
           errors.push(`[${workspace.id}/SOUL.md] Missing expected location ${EXPECTED_LOCATION}`);
+        }
+        if (!content.includes("[REDACTED]_shared")) {
+          errors.push(`[${workspace.id}/SOUL.md] Missing shared memory tag prefix [REDACTED]_shared`);
         }
       }
     }
@@ -89,7 +101,8 @@ function validateOpenClawConfig(errors) {
 
 function main() {
   const errors = [];
-  validateWorkspaceFiles(errors);
+  const canonicalSlug = parseCanonicalSlug();
+  validateWorkspaceFiles(errors, canonicalSlug);
   validateOpenClawConfig(errors);
 
   if (errors.length > 0) {
