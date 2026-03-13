@@ -5,9 +5,11 @@
   "scripts": {
     "dev": "next dev",
     "seed:inbox": "node scripts/seed-inbox.js",
+    "validate:workspace": "node scripts/validate-workspace.js",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

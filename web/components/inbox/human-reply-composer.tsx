@@ -9,12 +9,13 @@ import { Textarea } from "@/components/ui/textarea";
 interface HumanReplyComposerProps {
   conversationId: string;
   contactName: string;
+  isArchived?: boolean;
   onReplySent?: () => void;
 }
 
 type ComposerMode = "manual" | "agent";
 
-export function HumanReplyComposer({ conversationId, contactName, onReplySent }: HumanReplyComposerProps) {
+export function HumanReplyComposer({ conversationId, contactName, isArchived = false, onReplySent }: HumanReplyComposerProps) {
   const [message, setMessage] = useState("");
   const [originalDraft, setOriginalDraft] = useState<string | null>(null);
   const [mode, setMode] = useState<ComposerMode>("manual");
@@ -27,6 +28,10 @@ export function HumanReplyComposer({ conversationId, contactName, onReplySent }:
   const handleSend = async () => {
     const trimmed = message.trim();
     if (!trimmed || isSending) return;
+    if (isArchived) {
+      setError("This conversation is archived. Unarchive to reply.");
+      return;
+    }
 
     setIsSending(true);
     setError(null);
@@ -61,6 +66,10 @@ export function HumanReplyComposer({ conversationId, contactName, onReplySent }:
   };
 
   const handleGenerateDraft = async () => {
+    if (isArchived) {
+      setError("This conversation is archived. Unarchive to generate a draft.");
+      return;
+    }
     setIsGenerating(true);
     setError(null);
 
@@ -147,7 +156,7 @@ export function HumanReplyComposer({ conversationId, contactName, onReplySent }:
           />
           <Button
             onClick={handleGenerateDraft}
-            disabled={isGenerating}
+            disabled={isGenerating || isArchived}
             variant="outline"
             className="w-full gap-2 border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-primary-glow)]"
           >
@@ -169,7 +178,7 @@ export function HumanReplyComposer({ conversationId, contactName, onReplySent }:
         <div className="mb-2">
           <Button
             onClick={handleGenerateDraft}
-            disabled={isGenerating}
+            disabled={isGenerating || isArchived}
             variant="outline"
             className="w-full gap-2 border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-primary-glow)]"
           >
@@ -204,7 +213,7 @@ export function HumanReplyComposer({ conversationId, contactName, onReplySent }:
               ? "Borrador generado aparecerá aquí — edítalo antes de enviar..."
               : `Escribe tu respuesta para ${contactName}...`
           }
-          disabled={isSending}
+          disabled={isSending || isArchived}
           className="min-h-[80px] resize-none border-[var(--color-divider)] bg-[var(--color-surface-2)] text-[var(--color-text)] placeholder:text-[var(--color-text-faint)] focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]"
         />
 
@@ -216,7 +225,7 @@ export function HumanReplyComposer({ conversationId, contactName, onReplySent }:
           </span>
           <Button
             onClick={() => void handleSend()}
-            disabled={!message.trim() || isSending}
+            disabled={!message.trim() || isSending || isArchived}
             className="gap-2 bg-[var(--color-primary)] text-[var(--color-text-inverse)] hover:bg-[var(--color-primary-hover)] disabled:opacity-50"
           >
             {isSending ? (

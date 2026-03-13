@@ -13,6 +13,7 @@ import {
   type DragEndEvent,
   type DragOverEvent,
   type DragStartEvent,
+  type DraggableAttributes,
 } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 
@@ -40,6 +41,7 @@ function formatCurrency(value: number) {
 }
 
 type ColumnId = (typeof COLUMNS)[number]["id"];
+type DndListeners = Record<string, ((event: unknown) => void) | undefined>;
 
 function isColumnId(value: string | null | undefined): value is ColumnId {
   return COLUMNS.some((column) => column.id === value);
@@ -58,8 +60,8 @@ function LeadCard({
   onClick: () => void;
   isDragging?: boolean;
   isOverlay?: boolean;
-  attributes?: Record<string, unknown>;
-  listeners?: Record<string, unknown>;
+  attributes?: DraggableAttributes;
+  listeners?: DndListeners;
   style?: CSSProperties;
 }) {
   return (
@@ -113,14 +115,13 @@ function DraggableLeadCard({
   lead: Lead;
   onClick: () => void;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useDraggable({
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: lead.id,
     data: { type: "lead", leadId: lead.id, status: lead.status },
   });
 
   const style = {
     transform: CSS.Translate.toString(transform),
-    transition,
     touchAction: "none",
   } as CSSProperties;
 
@@ -131,8 +132,8 @@ function DraggableLeadCard({
         onClick={onClick}
         isDragging={isDragging}
         style={style}
-        attributes={attributes as Record<string, unknown>}
-        listeners={listeners as Record<string, unknown>}
+        attributes={attributes}
+        listeners={listeners as unknown as DndListeners}
       />
     </div>
   );

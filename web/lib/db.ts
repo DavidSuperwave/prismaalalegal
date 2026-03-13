@@ -68,11 +68,32 @@ function initializeSchema(database: Database.Database) {
       metadata TEXT DEFAULT '{}'
     );
 
+    CREATE TABLE IF NOT EXISTS replies (
+      id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+      conversation_id TEXT NOT NULL REFERENCES conversations(id),
+      message_id TEXT REFERENCES messages(id),
+      agent_draft TEXT,
+      operator_edit TEXT,
+      final_text TEXT NOT NULL,
+      status TEXT DEFAULT 'pending',
+      approved_at TEXT,
+      sent_at TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS processed_webhooks (
+      idempotency_key TEXT PRIMARY KEY,
+      processed_at TEXT DEFAULT (datetime('now'))
+    );
+
     CREATE INDEX IF NOT EXISTS idx_leads_status ON leads(status);
     CREATE INDEX IF NOT EXISTS idx_leads_subscriber ON leads(manychat_subscriber_id);
     CREATE INDEX IF NOT EXISTS idx_conversations_last_message_at ON conversations(last_message_at DESC);
     CREATE INDEX IF NOT EXISTS idx_conversations_subscriber ON conversations(manychat_subscriber_id);
     CREATE INDEX IF NOT EXISTS idx_messages_conversation_id ON messages(conversation_id, timestamp ASC);
+    CREATE INDEX IF NOT EXISTS idx_replies_conversation ON replies(conversation_id);
+    CREATE INDEX IF NOT EXISTS idx_replies_status ON replies(status);
   `);
 
   try {

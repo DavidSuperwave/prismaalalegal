@@ -166,6 +166,7 @@ export function ConversationView({
           <HumanReplyComposer
             conversationId={conversation.id}
             contactName={conversation.contactName}
+            isArchived={isArchived}
             onReplySent={onReplySent}
           />
         )}

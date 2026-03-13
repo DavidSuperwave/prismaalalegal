@@ -4,6 +4,84 @@
       "model": {
         "primary": "openrouter/moonshotai/kimi-k2.5"
       }
+    },
+    "list": [
+      {
+        "id": "operator",
+        "name": "Operator Assistant",
+        "default": true,
+        "workspace": "~/.openclaw/workspace-operator"
+      },
+      {
+        "id": "leads-inbox",
+        "name": "Leads Inbox SDR",
+        "workspace": "~/.openclaw/workspace-leads-inbox"
+      },
+      {
+        "id": "qualified-leads",
+        "name": "Case Qualifier",
+        "workspace": "~/.openclaw/workspace-qualified-leads"
+      }
+    ]
+  },
+  "bindings": [
+    {
+      "agentId": "operator",
+      "match": {
+        "channel": "telegram",
+        "accountId": "operator"
+      }
+    },
+    {
+      "agentId": "leads-inbox",
+      "match": {
+        "channel": "telegram",
+        "accountId": "leads"
+      }
+    },
+    {
+      "agentId": "qualified-leads",
+      "match": {
+        "channel": "telegram",
+        "accountId": "qualified"
+      }
+    }
+  ],
+  "tools": {
+    "agentToAgent": {
+      "enabled": true,
+      "allow": [
+        "operator",
+        "leads-inbox",
+        "qualified-leads"
+      ]
+    }
+  },
+  "channels": {
+    "telegram": {
+      "accounts": {
+        "operator": {
+          "botToken": "${TELEGRAM_BOT_TOKEN_OPERATOR}",
+          "dmPolicy": "allowlist",
+          "allowFrom": [
+            "${OPERATOR_TELEGRAM_USER_ID}"
+          ]
+        },
+        "leads": {
+          "botToken": "${TELEGRAM_BOT_TOKEN_LEADS}",
+          "dmPolicy": "allowlist",
+          "allowFrom": [
+            "${OPERATOR_TELEGRAM_USER_ID}"
+          ]
+        },
+        "qualified": {
+          "botToken": "${TELEGRAM_BOT_TOKEN_QUALIFIED}",
+          "dmPolicy": "allowlist",
+          "allowFrom": [
+            "${OPERATOR_TELEGRAM_USER_ID}"
+          ]
+        }
+      }
     }
   }
 }

@@ -8,8 +8,11 @@ services:
       - "127.0.0.1:3100:3100"
     volumes:
       - openclaw_data:/home/node/.openclaw
-      - ./workspace:/home/node/.openclaw/workspace
-      # Config now copied via init script instead of bind mount to avoid file lock issues
+      - ./openclaw.json:/home/node/.openclaw/openclaw.json:ro
+      - ./workspace-operator:/home/node/.openclaw/workspace-operator:ro
+      - ./workspace-leads-inbox:/home/node/.openclaw/workspace-leads-inbox:ro
+      - ./workspace-qualified-leads:/home/node/.openclaw/workspace-qualified-leads:ro
+      - ./workspace:/home/node/.openclaw/workspace:ro
     env_file: .env
     environment:
       - NODE_ENV=production

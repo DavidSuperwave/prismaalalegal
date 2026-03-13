@@ -4,7 +4,7 @@ import { getDb, nowIsoString } from "@/lib/db";
 import { addSupermemoryDocument } from "@/lib/supermemory";
 
 const MANYCHAT_API_KEY = process.env.MANYCHAT_API_KEY;
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN_OPERATOR || process.env.TELEGRAM_BOT_TOKEN;
 const AGENT_LEARNINGS_TAG = `agent:${process.env.AGENT_SLUG || "prismaalalegal"}:learnings`;
 
 function normalizeForComparison(text: string) {
@@ -102,6 +102,7 @@ export async function POST(request: Request) {
           c.manychat_subscriber_id,
           c.telegram_chat_id,
           c.source,
+          c.status,
           l.id as lead_id
         FROM conversations c
         LEFT JOIN leads l ON l.id = c.lead_id
@@ -114,12 +115,19 @@ export async function POST(request: Request) {
           manychat_subscriber_id: string | null;
           telegram_chat_id: string | null;
           source: "manychat" | "telegram";
+          status: "active" | "archived";
           lead_id: string | null;
         }
       | undefined;
 
     if (!conversation) {
       return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
+    }
+    if (conversation.status === "archived") {
+      return NextResponse.json(
+        { error: "Conversation is archived. Unarchive before sending a reply." },
+        { status: 409 }
+      );
     }
 
     let sendResult: { success: boolean; error?: string } = { success: false, error: "Unsupported source" };
@@ -148,6 +156,29 @@ export async function POST(request: Request) {
     ).run(conversationId, message, conversation.source, now, JSON.stringify({ sent_via: "web", operator: "human" }));
 
     db.prepare(
+      `INSERT INTO replies (
+        conversation_id,
+        agent_draft,
+        operator_edit,
+        final_text,
+        status,
+        approved_at,
+        sent_at,
+        created_at,
+        updated_at
+      ) VALUES (?, ?, ?, ?, 'sent', ?, ?, ?, ?)`
+    ).run(
+      conversationId,
+      originalDraft || null,
+      originalDraft && normalizeForComparison(originalDraft) !== normalizeForComparison(message) ? message : null,
+      message,
+      now,
+      now,
+      now,
+      now
+    );
+
+    db.prepare(
       `UPDATE conversations
         SET last_message = ?,
             last_message_at = ?,
@@ -156,19 +187,23 @@ export async function POST(request: Request) {
       WHERE id = ?`
     ).run(message, now, conversationId);
 
-    await addSupermemoryDocument({
-      content: `[Agente]: ${message}`,
-      containerSuffix: `conversations:${conversationId}`,
-      metadata: {
-        contact_name: conversation.contact_name,
-        channel: conversation.source,
-        sender: "human",
-        timestamp: now,
-        conversation_id: conversationId,
-        lead_id: conversation.lead_id,
-        sent_via: "web",
-      },
-    }).catch(() => undefined);
+    try {
+      await addSupermemoryDocument({
+        content: `[Agente]: ${message}`,
+        containerSuffix: `conversations:${conversationId}`,
+        metadata: {
+          contact_name: conversation.contact_name,
+          channel: conversation.source,
+          sender: "human",
+          timestamp: now,
+          conversation_id: conversationId,
+          lead_id: conversation.lead_id,
+          sent_via: "web",
+        },
+      });
+    } catch (error) {
+      console.error("Supermemory write failed after sending reply:", error);
+    }
 
     const lastContactMessage = db
       .prepare(
@@ -180,41 +215,49 @@ export async function POST(request: Request) {
       .get(conversationId) as { content: string } | undefined;
 
     if (lastContactMessage) {
-      await addSupermemoryDocument({
-        content: `[EJEMPLO DE RESPUESTA]\nContacto dice: "${lastContactMessage.content}"\nOperador responde: "${message}"`,
-        containerSuffix: "training:reply_examples",
-        metadata: {
-          contact_name: conversation.contact_name,
-          conversation_id: conversationId,
-          channel: conversation.source,
-          sent_via: "web",
-          timestamp: now,
-          type: "reply_example",
-        },
-      }).catch(() => undefined);
+      try {
+        await addSupermemoryDocument({
+          content: `[EJEMPLO DE RESPUESTA]\nContacto dice: "${lastContactMessage.content}"\nOperador responde: "${message}"`,
+          containerSuffix: "training:reply_examples",
+          metadata: {
+            contact_name: conversation.contact_name,
+            conversation_id: conversationId,
+            channel: conversation.source,
+            sent_via: "web",
+            timestamp: now,
+            type: "reply_example",
+          },
+        });
+      } catch (error) {
+        console.error("Supermemory training example write failed:", error);
+      }
     }
 
     if (originalDraft && normalizeForComparison(originalDraft) !== normalizeForComparison(message)) {
-      await addSupermemoryDocument({
-        content:
-          `[CORRECCIÓN DE BORRADOR]\n` +
-          `Borrador IA: "${originalDraft}"\n` +
-          `Operador envió: "${message}"\n` +
-          `Contexto: conversación con ${conversation.contact_name}` +
-          (lastContactMessage?.content
-            ? `, último mensaje del contacto: "${lastContactMessage.content}"`
-            : ""),
-        containerTag: AGENT_LEARNINGS_TAG,
-        metadata: {
-          type: "draft_correction",
-          contact_name: conversation.contact_name,
-          conversation_id: conversationId,
-          channel: conversation.source,
-          sender: "human",
-          timestamp: now,
-          has_contact_message_context: Boolean(lastContactMessage?.content),
-        },
-      }).catch(() => undefined);
+      try {
+        await addSupermemoryDocument({
+          content:
+            `[CORRECCIÓN DE BORRADOR]\n` +
+            `Borrador IA: "${originalDraft}"\n` +
+            `Operador envió: "${message}"\n` +
+            `Contexto: conversación con ${conversation.contact_name}` +
+            (lastContactMessage?.content
+              ? `, último mensaje del contacto: "${lastContactMessage.content}"`
+              : ""),
+          containerTag: AGENT_LEARNINGS_TAG,
+          metadata: {
+            type: "draft_correction",
+            contact_name: conversation.contact_name,
+            conversation_id: conversationId,
+            channel: conversation.source,
+            sender: "human",
+            timestamp: now,
+            has_contact_message_context: Boolean(lastContactMessage?.content),
+          },
+        });
+      } catch (error) {
+        console.error("Supermemory correction write failed:", error);
+      }
     }
 
     return NextResponse.json({
