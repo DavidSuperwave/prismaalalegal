@@ -16,7 +16,12 @@ if [[ -z "$CLIENT_SLUG" || -z "$CLIENT_NAME" ]]; then
 fi
 
 SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TARGET_DIR="$(cd "$SOURCE_DIR/.." && pwd)/superwave-${CLIENT_SLUG}"
+SOURCE_PARENT="$(cd "$SOURCE_DIR/.." && pwd)"
+if [[ -w "$SOURCE_PARENT" ]]; then
+  TARGET_DIR="${SOURCE_PARENT}/superwave-${CLIENT_SLUG}"
+else
+  TARGET_DIR="/tmp/superwave-${CLIENT_SLUG}"
+fi
 
 if [[ -d "$TARGET_DIR" ]]; then
   echo "❌ Target already exists: $TARGET_DIR"
@@ -36,16 +41,22 @@ TAG_CASES="${TAG_BASE}_cases"
 replace_literal_repo() {
   local from="$1"
   local to="$2"
-  rg -l --hidden \
+  local files
+  files=$(rg -l --hidden \
     --glob '!.git/**' \
     --glob '!node_modules/**' \
     --glob '!.next/**' \
     --glob '!web/data/**' \
     --glob '!*/package-lock.json' \
-    --fixed-strings "$from" . \
-    | while IFS= read -r file; do
-        perl -0pi -e "s/\Q$from\E/$to/g" "$file"
-      done
+    --fixed-strings "$from" . || true)
+
+  if [[ -z "$files" ]]; then
+    return 0
+  fi
+
+  while IFS= read -r file; do
+    perl -0pi -e "s#\\Q$from\\E#$to#g" "$file"
+  done <<< "$files"
 }
 
 # Canonical slug + tag scheme
