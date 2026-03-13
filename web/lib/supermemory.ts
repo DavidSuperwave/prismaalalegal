@@ -37,7 +37,7 @@ function resolveLegacyTag(containerSuffix: string) {
 
 export async function storeMemory(
   content: string,
-  containerTags: string[],
+  containerTags: readonly string[],
   metadata: Record<string, unknown> = {}
 ) {
   const headers = getHeaders();
@@ -74,7 +74,7 @@ export async function storeMemory(
 
 export async function searchMemory(
   query: string,
-  containerTags: string[],
+  containerTags: readonly string[],
   filters?: { AND?: Array<{ key: string; value: string }> },
   limit: number = 10
 ) {

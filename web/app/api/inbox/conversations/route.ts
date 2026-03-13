@@ -96,5 +96,5 @@ export async function POST(request: Request) {
     created_at: new Date().toISOString(),
   });
 
-  return GET();
+  return NextResponse.json({ success: true });
 }
