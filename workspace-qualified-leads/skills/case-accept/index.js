@@ -1,7 +1,14 @@
 const WEB_APP_URL = process.env.WEB_APP_INTERNAL_URL || "http://web:3000";
+const SERVICE_TOKEN = process.env.INTERNAL_SERVICE_TOKEN || "";
 
 async function requestJson(url, options = {}) {
-  const response = await fetch(url, options);
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      ...options.headers,
+      "x-service-token": SERVICE_TOKEN,
+    },
+  });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data.error || `Request failed (${response.status})`);
   return data;
