@@ -16,8 +16,26 @@ async function getJson(url, options = {}) {
   return data;
 }
 
-module.exports = async function execute({ filter = 'all' } = {}) {
+// Strip bot mention from group messages
+function normalizeCommand(command) {
+  return command.replace(/^@\S+\s*/, '').trim();
+}
+
+module.exports = async function execute({ command = '' } = {}) {
   try {
+    // Handle group mentions: "@bot /get all" -> "/get all"
+    const normalizedCmd = normalizeCommand(command);
+    
+    // Parse the command
+    const parts = normalizedCmd.split(/\s+/);
+    const cmd = parts[0].toLowerCase();
+    
+    // Handle /get all or just /get
+    let filter = null;
+    if (cmd === '/get' && parts[1]) {
+      filter = parts.slice(1).join(' ').trim();
+    }
+    
     // Get conversations
     const convData = await getJson(`${BASE_URL}/api/inbox/conversations`);
     const conversations = convData.conversations || [];

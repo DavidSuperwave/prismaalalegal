@@ -16,7 +16,22 @@ async function getJson(url, options = {}) {
   return data;
 }
 
-module.exports = async function execute({ identifier, text }) {
+// Strip bot mention from group messages
+function normalizeCommand(text) {
+  return text.replace(/^@\S+\s*/, '').trim();
+}
+
+module.exports = async function execute({ identifier, text, command = '' } = {}) {
+  // Handle group mentions in command
+  if (command) {
+    const normalized = normalizeCommand(command);
+    const parts = normalized.split(/\s+/);
+    if (parts.length >= 3) {
+      identifier = parts[1];
+      text = parts.slice(2).join(' ');
+    }
+  }
+
   if (!identifier || !text) {
     return '❌ Uso: /draft [telefono o nombre] [mensaje]';
   }
