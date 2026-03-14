@@ -24,6 +24,12 @@ function getDb() {
   return new Database(DB_PATH);
 }
 
+function escapeMarkdown(text) {
+  if (!text) return '';
+  // Escape special Markdown characters: _ * [ ] ( ) ~ ` > # + - = | { } . !
+  return text.replace(/[_*\[\]()~`>#+=|{}.!]/g, '\\$1');
+}
+
 async function notifyTelegram(contactName, messageText, conversationId, subscriberId, leadStatus) {
   if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_REPLIES_CHAT_ID) {
     console.error('[Bridge] Telegram credentials not configured');
@@ -36,14 +42,17 @@ async function notifyTelegram(contactName, messageText, conversationId, subscrib
   // Determine which agent should handle based on status
   const agentMention = (status === 'qualified') ? '@qualified-leads-agent' : '@leads-inbox-agent';
   
+  // Use plain text instead of Markdown to avoid parsing issues
   const text =
-    `📩 *New Inbound Message* ${agentMention}\n\n` +
-    `👤 *Contact:* ${contactName}\n` +
-    `💬 *Message:* ${preview}\n` +
-    `🆔 *Conversation:* \`${conversationId}\`\n` +
-    `📊 *Status:* ${status}\n\n` +
-    `*Agent Instructions:*\n` +
-    `1. Use web_fetch to get conversation: GET http://web:3000/api/inbox/conversations/${conversationId}/details\n` +
+    `📩 New Inbound Message ${agentMention}\n\n` +
+    `👤 Contact: ${contactName}\n` +
+    `💬 Message: ${preview}\n` +
+    `🆔 Conversation: ${conversationId}\n` +
+    `📊 Status: ${status}\n\n` +
+    `Agent Instructions:\n` +
+    `1. Use web_fetch to get conversation:\n` +
+    `   GET http://web:3000/api/inbox/conversations/${conversationId}/details\n` +
+    `   Header: x-service-token: ${process.env.INTERNAL_SERVICE_TOKEN || 'YOUR_TOKEN'}\n\n` +
     `2. Draft reply in Spanish\n` +
     `3. Use your skills to send/approve`;
 
@@ -54,13 +63,19 @@ async function notifyTelegram(contactName, messageText, conversationId, subscrib
       body: JSON.stringify({
         chat_id: TELEGRAM_REPLIES_CHAT_ID,
         text,
-        parse_mode: 'Markdown',
+        // No parse_mode to avoid Markdown issues
       }),
     });
     
     if (!response.ok) {
       const error = await response.text();
       console.error(`[Bridge] Telegram notification failed:`, error);
+      return false;
+    }
+    
+    const result = await response.json();
+    if (!result.ok) {
+      console.error(`[Bridge] Telegram API error:`, result.description);
       return false;
     }
     
