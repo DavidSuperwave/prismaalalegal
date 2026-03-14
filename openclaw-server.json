@@ -59,29 +59,26 @@
   },
   "channels": {
     "telegram": {
+      "enabled": true,
+      "dmPolicy": "pairing",
+      "groupPolicy": "open",
       "accounts": {
         "operator": {
           "botToken": "${TELEGRAM_BOT_TOKEN_OPERATOR}",
           "dmPolicy": "allowlist",
-          "allowFrom": [
-            "${OPERATOR_TELEGRAM_USER_ID}"
-          ],
+          "allowFrom": ["${OPERATOR_TELEGRAM_USER_ID}"],
           "groupPolicy": "open"
         },
         "leads": {
           "botToken": "${TELEGRAM_BOT_TOKEN_LEADS}",
           "dmPolicy": "allowlist",
-          "allowFrom": [
-            "${OPERATOR_TELEGRAM_USER_ID}"
-          ],
+          "allowFrom": ["${OPERATOR_TELEGRAM_USER_ID}"],
           "groupPolicy": "open"
         },
         "qualified": {
           "botToken": "${TELEGRAM_BOT_TOKEN_QUALIFIED}",
           "dmPolicy": "allowlist",
-          "allowFrom": [
-            "${OPERATOR_TELEGRAM_USER_ID}"
-          ],
+          "allowFrom": ["${OPERATOR_TELEGRAM_USER_ID}"],
           "groupPolicy": "open"
         }
       }

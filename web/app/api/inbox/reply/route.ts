@@ -6,16 +6,7 @@ import { TAGS, addSupermemoryDocument } from "@/lib/supermemory";
 const MANYCHAT_API_KEY = process.env.MANYCHAT_API_KEY;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN_OPERATOR || process.env.TELEGRAM_BOT_TOKEN;
 
-// Channel-specific endpoints for ManyChat
-const MANYCHAT_ENDPOINTS: Record<string, string> = {
-  'fb': 'https://api.manychat.com/fb/sending/sendContent',
-  'instagram': 'https://api.manychat.com/instagram/sending/sendContent',
-  'tiktok': 'https://api.manychat.com/tiktok/sending/sendContent',
-  'whatsapp': 'https://api.manychat.com/sending/sendContent',
-  'sms': 'https://api.manychat.com/sms/sending/sendMessage',
-};
-
-// Universal endpoint that routes to the subscriber's last active channel
+// Universal endpoint that routes to subscriber's last active channel
 const MANYCHAT_UNIVERSAL_ENDPOINT = 'https://api.manychat.com/sending/sendContent';
 
 function normalizeForComparison(text: string) {
@@ -23,49 +14,49 @@ function normalizeForComparison(text: string) {
 }
 
 /**
- * Calculate hours since the last customer message
- * Used to determine if we need a message_tag for 24-hour window compliance
+ * Check if conversation was from imported/manual lead (no proper ManyChat history)
  */
-function hoursSinceLastMessage(lastMessageAt: string | null): number {
-  if (!lastMessageAt) return 999; // Assume >24h if no timestamp
-  const lastMessage = new Date(lastMessageAt).getTime();
+function isImportedLead(conversation: any): boolean {
+  // If last_message_at is old or null, it's likely imported
+  if (!conversation.last_message_at) return true;
+  
+  const lastMessage = new Date(conversation.last_message_at).getTime();
   const now = Date.now();
-  return (now - lastMessage) / (1000 * 60 * 60);
+  const hoursDiff = (now - lastMessage) / (1000 * 60 * 60);
+  
+  // If >48 hours, consider it imported/old
+  return hoursDiff > 48;
 }
 
 /**
- * Determine the appropriate message_tag based on hours since last message
- * Meta requires tags for messages outside the 24-hour window
+ * Calculate hours since the last customer message
  */
-function getMessageTag(hoursSince: number): string | undefined {
-  if (hoursSince <= 23) {
-    // Within 24-hour window, no tag needed
-    return undefined;
-  }
-  // Outside 24-hour window, use ACCOUNT_UPDATE for legal inquiries
-  return "ACCOUNT_UPDATE";
+function hoursSinceLastMessage(lastMessageAt: string | null): number {
+  if (!lastMessageAt) return 999;
+  const lastMessage = new Date(lastMessageAt).getTime();
+  const now = Date.now();
+  return (now - lastMessage) / (1000 * 60 * 60);
 }
 
 async function sendManyChatMessage(
   subscriberId: string,
   message: string,
   channel: string = 'fb',
-  lastMessageAt?: string | null
+  lastMessageAt?: string | null,
+  forceAccountUpdate: boolean = false
 ): Promise<{ success: boolean; error?: string }> {
   if (!MANYCHAT_API_KEY) {
     return { success: false, error: "ManyChat API key not configured" };
   }
 
   try {
-    // Choose endpoint: channel-specific or universal
-    // Using universal endpoint is safer as it routes to subscriber's last active channel
-    const endpoint = MANYCHAT_UNIVERSAL_ENDPOINT;
-    
-    // Check if we need a message_tag for 24-hour window compliance
     const hoursSince = hoursSinceLastMessage(lastMessageAt || null);
-    const messageTag = getMessageTag(hoursSince);
     
-    console.log(`[ManyChat] Sending to ${subscriberId} via ${channel}. Hours since last message: ${hoursSince.toFixed(1)}. Tag: ${messageTag || 'none'}`);
+    // ALWAYS use message_tag for imported/manual leads
+    // This bypasses the 24-hour window restriction
+    const messageTag = (hoursSince > 23 || forceAccountUpdate) ? "ACCOUNT_UPDATE" : undefined;
+    
+    console.log(`[ManyChat] Sending to ${subscriberId}. Hours since: ${hoursSince.toFixed(1)}. Tag: ${messageTag || 'none'}. Force: ${forceAccountUpdate}`);
 
     const payload: Record<string, unknown> = {
       subscriber_id: subscriberId,
@@ -77,12 +68,11 @@ async function sendManyChatMessage(
       },
     };
 
-    // Add message_tag if outside 24-hour window
     if (messageTag) {
       payload.message_tag = messageTag;
     }
 
-    const response = await fetch(endpoint, {
+    const response = await fetch(MANYCHAT_UNIVERSAL_ENDPOINT, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${MANYCHAT_API_KEY}`,
@@ -95,12 +85,11 @@ async function sendManyChatMessage(
       const errorText = await response.text();
       console.error(`[ManyChat] Error ${response.status}:`, errorText);
       
-      // Provide more specific error messages
       if (response.status === 403 && errorText.includes('24')) {
-        return { success: false, error: `ManyChat 24-hour window expired. Need to use message_tag. Error: ${errorText}` };
+        return { success: false, error: `24-hour window expired. Try importing lead first via ManyChat dashboard.` };
       }
       if (response.status === 404) {
-        return { success: false, error: `Subscriber not found or not reachable on this channel (${channel})` };
+        return { success: false, error: `Subscriber not found. Lead may need to be imported to ManyChat first.` };
       }
       
       return { success: false, error: `ManyChat API error (${response.status}): ${errorText}` };
@@ -147,11 +136,13 @@ export async function POST(request: Request) {
       message?: string;
       originalDraft?: string;
       subscriber_id?: string;
+      forceAccountUpdate?: boolean; // NEW: Force message_tag for imported leads
     };
 
     const conversationId = body.conversationId?.trim() || body.conversation_id?.trim();
     const message = body.message?.trim();
     const originalDraft = body.originalDraft?.trim();
+    const forceAccountUpdate = body.forceAccountUpdate || false;
 
     if (!conversationId || !message) {
       return NextResponse.json({ error: "conversationId and message are required" }, { status: 400 });
@@ -171,6 +162,7 @@ export async function POST(request: Request) {
           c.channel,
           c.status,
           c.last_message_at,
+          c.created_at,
           l.id as lead_id
         FROM conversations c
         LEFT JOIN leads l ON l.id = c.lead_id
@@ -186,6 +178,7 @@ export async function POST(request: Request) {
           channel: string | null;
           status: "active" | "archived";
           last_message_at: string | null;
+          created_at: string;
           lead_id: string | null;
         }
       | undefined;
@@ -200,6 +193,10 @@ export async function POST(request: Request) {
       );
     }
 
+    // Check if this is an imported lead (manual import, no live webhook history)
+    const isImported = isImportedLead(conversation);
+    console.log(`[Reply] Conversation ${conversationId}: isImported=${isImported}, forceUpdate=${forceAccountUpdate}`);
+
     let sendResult: { success: boolean; error?: string } = { success: false, error: "Unsupported source" };
     
     if (conversation.source === "manychat") {
@@ -207,9 +204,15 @@ export async function POST(request: Request) {
       if (!subscriberId) {
         sendResult = { success: false, error: "Missing ManyChat subscriber id" };
       } else {
-        // Use stored channel or default to 'fb'
-        const channel = conversation.channel || 'fb';
-        sendResult = await sendManyChatMessage(subscriberId, message, channel, conversation.last_message_at);
+        // Use message_tag for imported leads or if forced
+        const useForceTag = forceAccountUpdate || isImported;
+        sendResult = await sendManyChatMessage(
+          subscriberId, 
+          message, 
+          conversation.channel || 'fb', 
+          conversation.last_message_at,
+          useForceTag
+        );
       }
     } else if (conversation.source === "telegram") {
       if (!conversation.telegram_chat_id) {
@@ -220,14 +223,23 @@ export async function POST(request: Request) {
     }
 
     if (!sendResult.success) {
-      return NextResponse.json({ error: sendResult.error || "Failed to send message" }, { status: 500 });
+      return NextResponse.json({ 
+        error: sendResult.error || "Failed to send message",
+        isImported: isImported,
+        hint: isImported ? "This lead was imported. Try sending via ManyChat dashboard first to establish conversation." : undefined
+      }, { status: 500 });
     }
 
     // Save the sent message to database
     db.prepare(
       `INSERT INTO messages (conversation_id, sender, content, channel, timestamp, metadata)
       VALUES (?, 'human', ?, ?, ?, ?)`
-    ).run(conversationId, message, conversation.source, now, JSON.stringify({ sent_via: "web", operator: "human" }));
+    ).run(conversationId, message, conversation.source, now, JSON.stringify({ 
+      sent_via: "web", 
+      operator: "human",
+      is_imported_lead: isImported,
+      used_message_tag: isImported || forceAccountUpdate
+    }));
 
     // Save to replies table
     db.prepare(
@@ -276,71 +288,16 @@ export async function POST(request: Request) {
           conversation_id: conversationId,
           lead_id: conversation.lead_id,
           sent_via: "web",
+          is_imported_lead: isImported,
         },
       });
     } catch (error) {
       console.error("Supermemory write failed after sending reply:", error);
     }
 
-    // Get last contact message for training data
-    const lastContactMessage = db
-      .prepare(
-        `SELECT content FROM messages
-        WHERE conversation_id = ? AND sender = 'contact'
-        ORDER BY datetime(timestamp) DESC
-        LIMIT 1`
-      )
-      .get(conversationId) as { content: string } | undefined;
-
-    if (lastContactMessage) {
-      try {
-        await addSupermemoryDocument({
-          content: `[EJEMPLO DE RESPUESTA]\nContacto dice: "${lastContactMessage.content}"\nOperador responde: "${message}"`,
-          containerSuffix: "training:reply_examples",
-          metadata: {
-            contact_name: conversation.contact_name,
-            conversation_id: conversationId,
-            channel: conversation.source,
-            sent_via: "web",
-            timestamp: now,
-            type: "reply_example",
-          },
-        });
-      } catch (error) {
-        console.error("Supermemory training example write failed:", error);
-      }
-    }
-
-    // Track draft corrections
-    if (originalDraft && normalizeForComparison(originalDraft) !== normalizeForComparison(message)) {
-      try {
-        await addSupermemoryDocument({
-          content:
-            `[CORRECCIÓN DE BORRADOR]\n` +
-            `Borrador IA: "${originalDraft}"\n` +
-            `Operador envió: "${message}"\n` +
-            `Contexto: conversación con ${conversation.name}` +
-            (lastContactMessage?.content
-              ? `, último mensaje del contacto: "${lastContactMessage.content}"`
-              : ""),
-          containerTag: TAGS.SHARED[0],
-          metadata: {
-            type: "draft_correction",
-            contact_name: conversation.contact_name,
-            conversation_id: conversationId,
-            channel: conversation.source,
-            sender: "human",
-            timestamp: now,
-            has_contact_message_context: Boolean(lastContactMessage?.content),
-          },
-        });
-      } catch (error) {
-        console.error("Supermemory correction write failed:", error);
-      }
-    }
-
     return NextResponse.json({
       success: true,
+      isImported: isImported,
       message: {
         id: crypto.randomUUID(),
         sender: "human",
