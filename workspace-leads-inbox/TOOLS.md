@@ -1,56 +1,97 @@
 # TOOLS.md - Leads Inbox Agent Tools
 
-## Authentication
+## API Access (CRITICAL - READ THIS)
 
-All API calls require authentication. Use this header:
+You have access to the webapp API using the internal service token.
+
+### Authentication Header
+Every API request MUST include:
 ```
-Authorization: Service 967e1b3fa5d5fcbc0eb163d589b6169aa7fadd560fbf1388
-```
-
-## API Endpoints (use web_fetch)
-
-### Get Conversations
-```bash
-curl -H "Authorization: Service 967e1b3fa5d5fcbc0eb163d589b6169aa7fadd560fbf1388" \
-  http://web:3000/api/inbox/conversations
-```
-Returns list of conversations with last message, contact info, status.
-
-### Get Conversation Details
-```bash
-curl -H "Authorization: Service 967e1b3fa5d5fcbc0eb163d589b6169aa7fadd560fbf1388" \
-  http://web:3000/api/inbox/conversations/{id}/details
-```
-Returns full conversation history including all messages.
-
-### Create Draft Reply
-```bash
-curl -X POST \
-  -H "Authorization: Service 967e1b3fa5d5fcbc0eb163d589b6169aa7fadd560fbf1388" \
-  -H "Content-Type: application/json" \
-  -d '{"conversation_id":"string","final_text":"reply text","agent_draft":"draft","status":"pending"}' \
-  http://web:3000/api/inbox/replies
+x-service-token: 0926dd013fe847ad21640a974ef85b59dfda9ace00b7f35f847250da62c027fb
 ```
 
-### Get Leads
-```bash
-curl -H "Authorization: Service 967e1b3fa5d5fcbc0eb163d589b6169aa7fadd560fbf1388" \
-  http://web:3000/api/crm/leads
+### Using web_fetch
+When you need to fetch data, use this exact format:
+
+```javascript
+// Example: Get conversation details
+const response = await web_fetch({
+  url: "http://web:3000/api/inbox/conversations/CONVERSATION_ID/details",
+  headers: {
+    "x-service-token": "0926dd013fe847ad21640a974ef85b59dfda9ace00b7f35f847250da62c027fb"
+  }
+});
 ```
 
-### Get Pending Replies
-```bash
-curl -H "Authorization: Service 967e1b3fa5d5fcbc0eb163d589b6169aa7fadd560fbf1388" \
-  "http://web:3000/api/inbox/replies?status=pending"
+### Available Endpoints
+
+**1. Get All Conversations**
+```
+GET http://web:3000/api/inbox/conversations
+Headers: x-service-token: [token]
+```
+
+**2. Get Conversation Details (with full history)**
+```
+GET http://web:3000/api/inbox/conversations/{conversation_id}/details
+Headers: x-service-token: [token]
+```
+
+**3. Create Draft Reply**
+```
+POST http://web:3000/api/inbox/replies
+Headers: 
+  - x-service-token: [token]
+  - Content-Type: application/json
+Body: {
+  "conversation_id": "string",
+  "final_text": "your reply in Spanish",
+  "agent_draft": "your original draft",
+  "status": "pending"
+}
+```
+
+**4. Get Pending Replies**
+```
+GET http://web:3000/api/inbox/replies?status=pending
+Headers: x-service-token: [token]
+```
+
+**5. Get All Leads**
+```
+GET http://web:3000/api/crm/leads
+Headers: x-service-token: [token]
+```
+
+**6. Update Lead Status**
+```
+PATCH http://web:3000/api/crm/leads/{lead_id}
+Headers: 
+  - x-service-token: [token]
+  - Content-Type: application/json
+Body: {
+  "status": "qualified|contacted|new",
+  "pipelineStage": "string"
+}
 ```
 
 ## Workflow
 
-1. When you receive a notification, use web_fetch with the auth header to get conversation details
-2. Review the full conversation history
-3. Draft a reply in Spanish
-4. POST the draft to /api/inbox/replies
-5. Notify the operator in Telegram
+When you receive a notification:
+
+1. **Extract the conversation ID** from the message
+2. **Use web_fetch** to get conversation details with the token
+3. **Review the full conversation** history
+4. **Draft a reply** in Spanish, professional and warm
+5. **POST the draft** to /api/inbox/replies
+6. **Notify the operator** that a draft is ready
+
+## Example Response
+
+When someone asks you to review leads, respond with:
+"I'll check the inbox for you. Fetching conversations now..."
+
+Then use web_fetch to get the data.
 
 ## Base URL
-`http://web:3000`
+`http://web:3000` (internal Docker network)
