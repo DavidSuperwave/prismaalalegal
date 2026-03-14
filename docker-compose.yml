@@ -2,28 +2,47 @@ version: "3.8"
 
 services:
   openclaw:
-    image: ghcr.io/openclaw/openclaw:2026.3.7
+    image: ghcr.io/openclaw/openclaw:2026.3.12
     restart: unless-stopped
     ports:
-      - "127.0.0.1:3100:3100"
+      - "127.0.0.1:3100:18789"
     volumes:
       - openclaw_data:/home/node/.openclaw
-      - ./openclaw.json:/home/node/.openclaw/openclaw.json:ro
-      - ./workspace-operator:/home/node/.openclaw/workspace-operator:ro
-      - ./workspace-leads-inbox:/home/node/.openclaw/workspace-leads-inbox:ro
-      - ./workspace-qualified-leads:/home/node/.openclaw/workspace-qualified-leads:ro
+      - ./workspace-operator:/home/node/.openclaw/workspace-operator
+      - ./workspace-leads-inbox:/home/node/.openclaw/workspace-leads-inbox
+      - ./workspace-qualified-leads:/home/node/.openclaw/workspace-qualified-leads
     env_file: .env
     environment:
       - NODE_ENV=production
+      - OPENCLAW_ALLOW_INSECURE_PRIVATE_WS=1
     networks:
       - superwave
 
   manychat-bridge:
     build: ./bridge
     restart: unless-stopped
+    command: node index.js
+    volumes:
+      - ./bridge-data:/data
     ports:
       - "127.0.0.1:3300:3300"
     env_file: .env
+    depends_on:
+      - openclaw
+      - web
+    networks:
+      - superwave
+
+  agent-bridge:
+    build: ./bridge
+    restart: unless-stopped
+    command: node agent-bridge.js
+    volumes:
+      - db_data:/app/data
+    env_file: .env
+    environment:
+      - DB_PATH=/app/data/template.db
+      - OPENCLAW_URL=http://openclaw:18789
     depends_on:
       - openclaw
       - web
@@ -36,7 +55,7 @@ services:
     ports:
       - "127.0.0.1:3000:3000"
     volumes:
-      - ./data:/app/data
+      - db_data:/app/data
     env_file: .env
     depends_on:
       - openclaw
@@ -60,11 +79,13 @@ services:
     depends_on:
       - manychat-bridge
       - web
+      - agent-bridge
 
 volumes:
   openclaw_data:
   caddy_data:
   caddy_config:
+  db_data:
 
 networks:
   superwave:
