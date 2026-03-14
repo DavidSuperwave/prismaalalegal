@@ -12,79 +12,101 @@ import('node-fetch').then(mod => { fetch = mod.default; });
 
 // Config
 const DB_PATH = process.env.DB_PATH || '/app/data/template.db';
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN_LEADS || process.env.TELEGRAM_BOT_TOKEN;
-const TELEGRAM_REPLIES_CHAT_ID = process.env.TELEGRAM_REPLIES_CHAT_ID;
+
+// Bot tokens
+const LEADS_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN_LEADS || process.env.TELEGRAM_BOT_TOKEN;
+const QUALIFIED_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN_QUALIFIED;
+const OPERATOR_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN_OPERATOR || process.env.TELEGRAM_BOT_TOKEN;
+
+// Chat IDs for different lead types
+const LEADS_CHAT_ID = process.env.TELEGRAM_LEADS_CHAT_ID || '-5107802002';
+const QUALIFIED_CHAT_ID = process.env.TELEGRAM_QUALIFIED_CHAT_ID || '-5107802002';
+const REPLIES_CHAT_ID = process.env.TELEGRAM_REPLIES_CHAT_ID || '-5052838020';
+
 const POLL_INTERVAL_MS = 5000;
 
 // State tracking
-let lastProcessedMessageId = null;
 let processedMessageIds = new Set();
 
 function getDb() {
   return new Database(DB_PATH);
 }
 
-function escapeMarkdown(text) {
-  if (!text) return '';
-  // Escape special Markdown characters: _ * [ ] ( ) ~ ` > # + - = | { } . !
-  return text.replace(/[_*\[\]()~`>#+=|{}.!]/g, '\\$1');
-}
-
-async function notifyTelegram(contactName, messageText, conversationId, subscriberId, leadStatus) {
-  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_REPLIES_CHAT_ID) {
-    console.error('[Bridge] Telegram credentials not configured');
+async function sendTelegramMessage(botToken, chatId, text) {
+  if (!botToken || !chatId) {
+    console.error('[Bridge] Missing bot token or chat ID');
     return false;
   }
 
-  const preview = messageText.length > 200 ? `${messageText.slice(0, 200)}...` : messageText;
-  const status = leadStatus || 'new';
-  
-  // Determine which agent should handle based on status
-  const agentMention = (status === 'qualified') ? '@qualified-leads-agent' : '@leads-inbox-agent';
-  
-  // Use plain text instead of Markdown to avoid parsing issues
-  const text =
-    `📩 New Inbound Message ${agentMention}\n\n` +
-    `👤 Contact: ${contactName}\n` +
-    `💬 Message: ${preview}\n` +
-    `🆔 Conversation: ${conversationId}\n` +
-    `📊 Status: ${status}\n\n` +
-    `Agent Instructions:\n` +
-    `1. Use web_fetch to get conversation:\n` +
-    `   GET http://web:3000/api/inbox/conversations/${conversationId}/details\n` +
-    `   Header: x-service-token: ${process.env.INTERNAL_SERVICE_TOKEN || 'YOUR_TOKEN'}\n\n` +
-    `2. Draft reply in Spanish\n` +
-    `3. Use your skills to send/approve`;
-
   try {
-    const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+    const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        chat_id: TELEGRAM_REPLIES_CHAT_ID,
+        chat_id: chatId,
         text,
         // No parse_mode to avoid Markdown issues
       }),
     });
     
-    if (!response.ok) {
-      const error = await response.text();
-      console.error(`[Bridge] Telegram notification failed:`, error);
-      return false;
-    }
-    
     const result = await response.json();
+    
     if (!result.ok) {
-      console.error(`[Bridge] Telegram API error:`, result.description);
+      console.error(`[Bridge] Telegram failed:`, result.description);
       return false;
     }
     
-    console.log(`[Bridge] Telegram notification sent for ${contactName}`);
     return true;
   } catch (error) {
-    console.error('[Bridge] Telegram send failed:', error.message);
+    console.error('[Bridge] Telegram error:', error.message);
     return false;
   }
+}
+
+async function notifyAgents(contactName, messageText, conversationId, leadStatus) {
+  const status = leadStatus || 'new';
+  const preview = messageText.length > 200 ? `${messageText.slice(0, 200)}...` : messageText;
+  
+  // Determine which bot and chat to use based on lead status
+  let botToken, chatId, agentMention, groupName;
+  
+  if (status === 'qualified') {
+    // Qualified leads → qualified-leads bot → qualified group
+    botToken = QUALIFIED_BOT_TOKEN || LEADS_BOT_TOKEN;
+    chatId = QUALIFIED_CHAT_ID;
+    agentMention = '@qualified-leads-agent';
+    groupName = '#qualified-leads';
+  } else {
+    // New/contacted leads → leads-inbox bot → leads group
+    botToken = LEADS_BOT_TOKEN;
+    chatId = LEADS_CHAT_ID;
+    agentMention = '@leads-inbox-agent';
+    groupName = '#replies';
+  }
+  
+  const text =
+    `📩 New Inbound Message - ${agentMention}\n\n` +
+    `👤 Contact: ${contactName}\n` +
+    `💬 Message: ${preview}\n` +
+    `🆔 Conversation: ${conversationId}\n` +
+    `📊 Status: ${status}\n\n` +
+    `Agent Instructions:\n` +
+    `1. Get conversation details:\n` +
+    `   GET http://web:3000/api/inbox/conversations/${conversationId}/details\n` +
+    `   Header: x-service-token: YOUR_TOKEN\n\n` +
+    `2. Draft reply in Spanish\n` +
+    `3. Use skills to approve/send`;
+
+  console.log(`[Bridge] Sending to ${groupName} (${chatId}) for ${contactName}`);
+  const success = await sendTelegramMessage(botToken, chatId, text);
+  
+  if (success) {
+    console.log(`[Bridge] ✓ Notification sent to ${groupName} for ${contactName}`);
+  } else {
+    console.log(`[Bridge] ✗ Failed to send to ${groupName}`);
+  }
+  
+  return success;
 }
 
 async function checkNewMessages() {
@@ -119,30 +141,28 @@ async function checkNewMessages() {
         processedMessageIds.delete(firstKey);
       }
       
-      console.log(`[Bridge] New message from ${msg.contact_name}: ${msg.content.slice(0, 50)}...`);
+      console.log(`[Bridge] Processing message from ${msg.contact_name}`);
       
-      // Send Telegram notification
-      await notifyTelegram(
+      // Send Telegram notification to appropriate group
+      await notifyAgents(
         msg.contact_name,
         msg.content,
         msg.conversation_id,
-        msg.manychat_subscriber_id,
         msg.lead_status
       );
-      
-      lastProcessedMessageId = msg.id;
     }
   } catch (error) {
-    console.error('[Bridge] Error checking messages:', error.message);
+    console.error('[Bridge] Error:', error.message);
   } finally {
     db.close();
   }
 }
 
 // Main loop
-console.log('[Bridge] Alalegal Agent Bridge starting...');
+console.log('[Bridge] Starting Alalegal Agent Bridge...');
 console.log(`[Bridge] DB: ${DB_PATH}`);
-console.log(`[Bridge] Telegram Chat: ${TELEGRAM_REPLIES_CHAT_ID}`);
+console.log(`[Bridge] Leads Chat: ${LEADS_CHAT_ID}`);
+console.log(`[Bridge] Qualified Chat: ${QUALIFIED_CHAT_ID}`);
 console.log(`[Bridge] Polling every ${POLL_INTERVAL_MS}ms`);
 
 // Initial check
