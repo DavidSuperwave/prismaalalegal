@@ -14,6 +14,7 @@ type WebhookPayload = {
     name?: string;
     phone?: string;
     email?: string;
+    channel?: string; // 'fb', 'instagram', 'tiktok', etc.
   };
   message?: {
     id?: string;
@@ -48,12 +49,13 @@ function markWebhookProcessed(key: string, now: string) {
   return result.changes > 0;
 }
 
-async function notifyTelegram(contactName: string, messageText: string, conversationId: string, subscriberId: string) {
+async function notifyTelegram(contactName: string, messageText: string, conversationId: string, subscriberId: string, channel?: string) {
   if (!TELEGRAM_BOT_TOKEN_LEADS || !TELEGRAM_REPLIES_CHAT_ID) return;
 
   const preview = messageText.length > 200 ? `${messageText.slice(0, 200)}...` : messageText;
+  const channelEmoji = channel === 'instagram' ? '📸' : channel === 'tiktok' ? '🎵' : '💬';
   const text =
-    `📩 *Inbound lead message*\n\n` +
+    `📩 *Inbound lead message* ${channelEmoji}\n\n` +
     `👤 *Contact:* ${contactName}\n` +
     `💬 *Message:* ${preview}\n` +
     `🆔 *Conversation:* \`${conversationId}\`\n` +
@@ -100,6 +102,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing subscriber or message" }, { status: 400 });
     }
 
+    // Extract channel from subscriber (default to 'fb' if not provided)
+    const channel = subscriber.channel || 'fb';
+
     const now = nowIsoString();
     ensureWebhookTable();
     const key = idempotencyKey(body);
@@ -122,9 +127,9 @@ export async function POST(request: Request) {
 
     if (!lead) {
       db.prepare(
-        `INSERT OR IGNORE INTO leads (name, email, phone, source, status, manychat_subscriber_id, created_at, updated_at)
-         VALUES (?, ?, ?, 'manychat', 'new', ?, ?, ?)`
-      ).run(contactName, subscriber.email || null, subscriber.phone || null, subscriber.id, now, now);
+        `INSERT OR IGNORE INTO leads (name, email, phone, source, status, manychat_subscriber_id, channel, created_at, updated_at)
+         VALUES (?, ?, ?, 'manychat', 'new', ?, ?, ?, ?)`
+      ).run(contactName, subscriber.email || null, subscriber.phone || null, subscriber.id, channel, now, now);
 
       lead = db
         .prepare(
@@ -140,9 +145,10 @@ export async function POST(request: Request) {
            SET name = COALESCE(?, name),
                email = COALESCE(?, email),
                phone = COALESCE(?, phone),
+               channel = COALESCE(?, channel),
                updated_at = ?
          WHERE id = ?`
-      ).run(contactName, subscriber.email || null, subscriber.phone || null, now, lead.id);
+      ).run(contactName, subscriber.email || null, subscriber.phone || null, channel, now, lead.id);
     }
 
     if (!lead) {
@@ -161,9 +167,9 @@ export async function POST(request: Request) {
     if (!conversation) {
       db.prepare(
         `INSERT INTO conversations
-         (contact_name, contact_phone, source, last_message, last_message_at, unread_count, status, manychat_subscriber_id, lead_id, created_at)
-         VALUES (?, ?, 'manychat', ?, ?, 1, 'active', ?, ?, ?)`
-      ).run(contactName, subscriber.phone || null, messageText, now, subscriber.id, lead.id, now);
+         (contact_name, contact_phone, source, channel, last_message, last_message_at, unread_count, status, manychat_subscriber_id, lead_id, created_at)
+         VALUES (?, ?, 'manychat', ?, ?, ?, 1, 'active', ?, ?, ?)`
+      ).run(contactName, subscriber.phone || null, channel, messageText, now, subscriber.id, lead.id, now);
 
       conversation = db
         .prepare(
@@ -180,9 +186,10 @@ export async function POST(request: Request) {
                last_message_at = ?,
                unread_count = unread_count + 1,
                contact_name = COALESCE(?, contact_name),
-               lead_id = COALESCE(?, lead_id)
+               lead_id = COALESCE(?, lead_id),
+               channel = COALESCE(?, channel)
          WHERE id = ?`
-      ).run(messageText, now, contactName, lead.id, conversation.id);
+      ).run(messageText, now, contactName, lead.id, channel, conversation.id);
     }
 
     if (!conversation) {
@@ -191,16 +198,18 @@ export async function POST(request: Request) {
 
     db.prepare(
       `INSERT INTO messages (conversation_id, sender, content, channel, timestamp, metadata)
-       VALUES (?, 'contact', ?, 'manychat', ?, ?)`
+       VALUES (?, 'contact', ?, ?, ?, ?)`
     ).run(
       conversation.id,
       messageText,
+      channel,
       now,
       JSON.stringify({
         subscriber_id: subscriber.id,
         subscriber_name: subscriber.name,
         subscriber_phone: subscriber.phone,
         subscriber_email: subscriber.email,
+        channel: channel,
         message_id: body.message?.id || null,
       })
     );
@@ -212,7 +221,7 @@ export async function POST(request: Request) {
         metadata: {
           type: "conversation",
           contact_name: contactName,
-          channel: "manychat",
+          channel: channel,
           sender: "contact",
           timestamp: now,
           conversation_id: conversation.id,
@@ -224,13 +233,13 @@ export async function POST(request: Request) {
     }
 
     const preview = messageText.length > 180 ? `${messageText.slice(0, 180)}...` : messageText;
-    const agentMessage = `New inbound from ${subscriber.phone || subscriber.id}: ${preview}`;
+    const agentMessage = `New inbound from ${subscriber.phone || subscriber.id} (${channel}): ${preview}`;
     const agentSend = await sendToAgent("leads-inbox", agentMessage);
     if (!agentSend.success) {
       console.error("Failed to notify leads-inbox agent:", agentSend.error);
     }
 
-    await notifyTelegram(contactName, messageText, conversation.id, subscriber.id);
+    await notifyTelegram(contactName, messageText, conversation.id, subscriber.id, channel);
 
     return manyChatAck();
   } catch (error) {

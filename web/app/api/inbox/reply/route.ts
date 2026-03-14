@@ -6,43 +6,109 @@ import { TAGS, addSupermemoryDocument } from "@/lib/supermemory";
 const MANYCHAT_API_KEY = process.env.MANYCHAT_API_KEY;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN_OPERATOR || process.env.TELEGRAM_BOT_TOKEN;
 
+// Channel-specific endpoints for ManyChat
+const MANYCHAT_ENDPOINTS: Record<string, string> = {
+  'fb': 'https://api.manychat.com/fb/sending/sendContent',
+  'instagram': 'https://api.manychat.com/instagram/sending/sendContent',
+  'tiktok': 'https://api.manychat.com/tiktok/sending/sendContent',
+  'whatsapp': 'https://api.manychat.com/sending/sendContent',
+  'sms': 'https://api.manychat.com/sms/sending/sendMessage',
+};
+
+// Universal endpoint that routes to the subscriber's last active channel
+const MANYCHAT_UNIVERSAL_ENDPOINT = 'https://api.manychat.com/sending/sendContent';
+
 function normalizeForComparison(text: string) {
   return text.replace(/\s+/g, " ").trim();
 }
 
+/**
+ * Calculate hours since the last customer message
+ * Used to determine if we need a message_tag for 24-hour window compliance
+ */
+function hoursSinceLastMessage(lastMessageAt: string | null): number {
+  if (!lastMessageAt) return 999; // Assume >24h if no timestamp
+  const lastMessage = new Date(lastMessageAt).getTime();
+  const now = Date.now();
+  return (now - lastMessage) / (1000 * 60 * 60);
+}
+
+/**
+ * Determine the appropriate message_tag based on hours since last message
+ * Meta requires tags for messages outside the 24-hour window
+ */
+function getMessageTag(hoursSince: number): string | undefined {
+  if (hoursSince <= 23) {
+    // Within 24-hour window, no tag needed
+    return undefined;
+  }
+  // Outside 24-hour window, use ACCOUNT_UPDATE for legal inquiries
+  return "ACCOUNT_UPDATE";
+}
+
 async function sendManyChatMessage(
   subscriberId: string,
-  message: string
+  message: string,
+  channel: string = 'fb',
+  lastMessageAt?: string | null
 ): Promise<{ success: boolean; error?: string }> {
   if (!MANYCHAT_API_KEY) {
     return { success: false, error: "ManyChat API key not configured" };
   }
 
   try {
-    const response = await fetch("https://api.manychat.com/fb/sending/sendContent", {
+    // Choose endpoint: channel-specific or universal
+    // Using universal endpoint is safer as it routes to subscriber's last active channel
+    const endpoint = MANYCHAT_UNIVERSAL_ENDPOINT;
+    
+    // Check if we need a message_tag for 24-hour window compliance
+    const hoursSince = hoursSinceLastMessage(lastMessageAt || null);
+    const messageTag = getMessageTag(hoursSince);
+    
+    console.log(`[ManyChat] Sending to ${subscriberId} via ${channel}. Hours since last message: ${hoursSince.toFixed(1)}. Tag: ${messageTag || 'none'}`);
+
+    const payload: Record<string, unknown> = {
+      subscriber_id: subscriberId,
+      data: {
+        version: "v2",
+        content: {
+          messages: [{ type: "text", text: message }],
+        },
+      },
+    };
+
+    // Add message_tag if outside 24-hour window
+    if (messageTag) {
+      payload.message_tag = messageTag;
+    }
+
+    const response = await fetch(endpoint, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${MANYCHAT_API_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        subscriber_id: subscriberId,
-        data: {
-          version: "v2",
-          content: {
-            messages: [{ type: "text", text: message }],
-          },
-        },
-      }),
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      return { success: false, error: `ManyChat API error: ${error}` };
+      const errorText = await response.text();
+      console.error(`[ManyChat] Error ${response.status}:`, errorText);
+      
+      // Provide more specific error messages
+      if (response.status === 403 && errorText.includes('24')) {
+        return { success: false, error: `ManyChat 24-hour window expired. Need to use message_tag. Error: ${errorText}` };
+      }
+      if (response.status === 404) {
+        return { success: false, error: `Subscriber not found or not reachable on this channel (${channel})` };
+      }
+      
+      return { success: false, error: `ManyChat API error (${response.status}): ${errorText}` };
     }
 
     return { success: true };
   } catch (error) {
+    console.error("[ManyChat] Exception:", error);
     return { success: false, error: `Failed to send via ManyChat: ${String(error)}` };
   }
 }
@@ -93,6 +159,7 @@ export async function POST(request: Request) {
 
     const db = getDb();
     const now = nowIsoString();
+    
     const conversation = db
       .prepare(
         `SELECT 
@@ -101,7 +168,9 @@ export async function POST(request: Request) {
           c.manychat_subscriber_id,
           c.telegram_chat_id,
           c.source,
+          c.channel,
           c.status,
+          c.last_message_at,
           l.id as lead_id
         FROM conversations c
         LEFT JOIN leads l ON l.id = c.lead_id
@@ -114,7 +183,9 @@ export async function POST(request: Request) {
           manychat_subscriber_id: string | null;
           telegram_chat_id: string | null;
           source: "manychat" | "telegram";
+          channel: string | null;
           status: "active" | "archived";
+          last_message_at: string | null;
           lead_id: string | null;
         }
       | undefined;
@@ -130,12 +201,15 @@ export async function POST(request: Request) {
     }
 
     let sendResult: { success: boolean; error?: string } = { success: false, error: "Unsupported source" };
+    
     if (conversation.source === "manychat") {
       const subscriberId = conversation.manychat_subscriber_id || body.subscriber_id;
       if (!subscriberId) {
         sendResult = { success: false, error: "Missing ManyChat subscriber id" };
       } else {
-        sendResult = await sendManyChatMessage(subscriberId, message);
+        // Use stored channel or default to 'fb'
+        const channel = conversation.channel || 'fb';
+        sendResult = await sendManyChatMessage(subscriberId, message, channel, conversation.last_message_at);
       }
     } else if (conversation.source === "telegram") {
       if (!conversation.telegram_chat_id) {
@@ -149,11 +223,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: sendResult.error || "Failed to send message" }, { status: 500 });
     }
 
+    // Save the sent message to database
     db.prepare(
       `INSERT INTO messages (conversation_id, sender, content, channel, timestamp, metadata)
       VALUES (?, 'human', ?, ?, ?, ?)`
     ).run(conversationId, message, conversation.source, now, JSON.stringify({ sent_via: "web", operator: "human" }));
 
+    // Save to replies table
     db.prepare(
       `INSERT INTO replies (
         conversation_id,
@@ -177,6 +253,7 @@ export async function POST(request: Request) {
       now
     );
 
+    // Update conversation
     db.prepare(
       `UPDATE conversations
         SET last_message = ?,
@@ -186,6 +263,7 @@ export async function POST(request: Request) {
       WHERE id = ?`
     ).run(message, now, conversationId);
 
+    // Track in Supermemory
     try {
       await addSupermemoryDocument({
         content: `[Agente]: ${message}`,
@@ -204,6 +282,7 @@ export async function POST(request: Request) {
       console.error("Supermemory write failed after sending reply:", error);
     }
 
+    // Get last contact message for training data
     const lastContactMessage = db
       .prepare(
         `SELECT content FROM messages
@@ -232,6 +311,7 @@ export async function POST(request: Request) {
       }
     }
 
+    // Track draft corrections
     if (originalDraft && normalizeForComparison(originalDraft) !== normalizeForComparison(message)) {
       try {
         await addSupermemoryDocument({
@@ -239,7 +319,7 @@ export async function POST(request: Request) {
             `[CORRECCIÓN DE BORRADOR]\n` +
             `Borrador IA: "${originalDraft}"\n` +
             `Operador envió: "${message}"\n` +
-            `Contexto: conversación con ${conversation.contact_name}` +
+            `Contexto: conversación con ${conversation.name}` +
             (lastContactMessage?.content
               ? `, último mensaje del contacto: "${lastContactMessage.content}"`
               : ""),
