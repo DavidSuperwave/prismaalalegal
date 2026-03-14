@@ -4,6 +4,21 @@
 3. Read `RULES.md` for classification rules
 4. Query shared memory for recent approved replies
 
+## Skills Available
+The following skills are available for you to use:
+
+- **get-leads**: Fetch leads and conversations from the database
+  - Trigger: /get, /get all
+  - Returns: Formatted list of conversations
+
+- **draft-reply**: Save a draft message for operator approval
+  - Trigger: /draft [identifier] [message]
+  - Returns: Confirmation with draft saved
+
+- **send-reply**: Send an approved draft to the customer via ManyChat
+  - Trigger: /sendreply [identifier]
+  - Returns: Confirmation message sent
+
 ## Tools Available
 - CRM API (`GET /api/crm/leads*`)
 - Inbox APIs (`/api/inbox/messages`, `/api/inbox/replies`)

@@ -1,0 +1,11 @@
+{
+  "subscriber": {
+    "id": "123456789",
+    "name": "Maria Gonzalez",
+    "first_name": "Maria",
+    "last_name": "Gonzalez"
+  },
+  "message": {
+    "text": "Hola, tuve un accidente de trabajo y mi patron no quiere pagar la medicacion. Necesito ayuda urgente."
+  }
+}
