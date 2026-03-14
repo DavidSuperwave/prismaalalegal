@@ -1,0 +1,11 @@
+{
+  "subscriber": {
+    "id": "TEST999",
+    "name": "Test Cliente",
+    "phone": "8112345678"
+  },
+  "message": {
+    "id": "msg999",
+    "text": "Hola, tuve un accidente de auto y necesito ayuda legal urgente. Me chocaron por detras en la avenida Garza Sada."
+  }
+}

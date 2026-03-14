@@ -1,0 +1,11 @@
+{
+  "subscriber": {
+    "id": "TEST777",
+    "name": "Maria Test",
+    "phone": "8111111111"
+  },
+  "message": {
+    "id": "msg777",
+    "text": "Hola, necesito ayuda con un accidente de trabajo. Me cai en la construccion y mi patron no quiere pagar."
+  }
+}
