@@ -75,10 +75,13 @@ async function notifyTelegram(contactName: string, messageText: string, conversa
 }
 
 function manyChatAck() {
+  // Return proper ManyChat v2 format to prevent retries
   return NextResponse.json({
     version: "v2",
     content: {
-      messages: [],
+      messages: [
+        { type: "text", text: "✓" }
+      ],
     },
   });
 }

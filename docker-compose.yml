@@ -15,6 +15,7 @@ services:
     environment:
       - NODE_ENV=production
       - OPENCLAW_ALLOW_INSECURE_PRIVATE_WS=1
+      - INTERNAL_SERVICE_TOKEN=${INTERNAL_SERVICE_TOKEN}
     networks:
       - superwave
 
@@ -43,6 +44,7 @@ services:
     environment:
       - DB_PATH=/app/data/template.db
       - OPENCLAW_URL=http://openclaw:18789
+      - INTERNAL_SERVICE_TOKEN=${INTERNAL_SERVICE_TOKEN}
     depends_on:
       - openclaw
       - web
@@ -57,6 +59,8 @@ services:
     volumes:
       - db_data:/app/data
     env_file: .env
+    environment:
+      - INTERNAL_SERVICE_TOKEN=${INTERNAL_SERVICE_TOKEN}
     depends_on:
       - openclaw
     networks:
