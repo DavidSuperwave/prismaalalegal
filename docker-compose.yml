@@ -8,6 +8,7 @@ services:
       - "127.0.0.1:3100:18789"
     volumes:
       - openclaw_data:/home/node/.openclaw
+      - ./openclaw.json:/home/node/.openclaw/openclaw.json:ro
       - ./workspace-operator:/home/node/.openclaw/workspace-operator
       - ./workspace-leads-inbox:/home/node/.openclaw/workspace-leads-inbox
       - ./workspace-qualified-leads:/home/node/.openclaw/workspace-qualified-leads
