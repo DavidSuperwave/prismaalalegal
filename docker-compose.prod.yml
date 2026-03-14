@@ -1,0 +1,59 @@
+version: "3.8"
+
+services:
+  # Using existing OpenClaw on host - mapped to port 18789
+  # OpenClaw container removed - using external instance
+
+  manychat-bridge:
+    build: ./bridge
+    restart: unless-stopped
+    ports:
+      - "3300:3300"
+    env_file: .env
+    environment:
+      - OPENCLAW_GATEWAY_URL=http://host.docker.internal:18789
+      - WEB_APP_INTERNAL_URL=http://web:3000
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - web
+    networks:
+      - superwave
+
+  web:
+    build: ./web
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/app/data
+    env_file: .env
+    environment:
+      - OPENCLAW_GATEWAY_URL=http://host.docker.internal:18789
+      - NODE_ENV=production
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - superwave
+
+  # Simple nginx reverse proxy instead of Caddy for now
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - web
+      - manychat-bridge
+    networks:
+      - superwave
+
+volumes:
+  caddy_data:
+  caddy_config:
+
+networks:
+  superwave:
+    driver: bridge

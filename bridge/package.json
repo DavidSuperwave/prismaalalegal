@@ -1,14 +1,16 @@
 {
   "name": "manychat-bridge",
   "version": "1.0.0",
-  "description": "ManyChat webhook bridge for Prisma Legal Agent",
+  "description": "ManyChat webhook bridge + Agent Bridge for Prisma Legal Agent",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "agent-bridge": "node agent-bridge.js"
   },
   "dependencies": {
     "express": "^4.18.2",
     "node-fetch": "^3.3.2",
-    "dotenv": "^16.4.1"
+    "dotenv": "^16.4.1",
+    "better-sqlite3": "^9.4.3"
   }
 }
