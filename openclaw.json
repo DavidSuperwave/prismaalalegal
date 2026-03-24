@@ -154,10 +154,25 @@
   "bindings": [
     { "agentId": "operator", "match": { "channel": "telegram", "accountId": "operator" } },
     { "agentId": "leads-inbox", "match": { "channel": "telegram", "accountId": "leads" } },
-    { "agentId": "qualified-leads", "match": { "channel": "telegram", "accountId": "qualified" } }
+    { "agentId": "qualified-leads", "match": { "channel": "telegram", "accountId": "qualified" } },
+    { "agentId": "operator", "match": { "channel": "whatsapp", "accountId": "default" } }
   ],
   "commands": { "native": "auto", "nativeSkills": "auto", "restart": true, "ownerDisplay": "raw" },
   "channels": {
+    "whatsapp": {
+      "enabled": true,
+      "dmPolicy": "allowlist",
+      "allowFrom": ["${WHATSAPP_OPERATOR_PHONE}"],
+      "groupPolicy": "disabled",
+      "sendReadReceipts": true,
+      "accounts": {
+        "default": {
+          "dmPolicy": "allowlist",
+          "allowFrom": ["${WHATSAPP_OPERATOR_PHONE}"],
+          "sendReadReceipts": true
+        }
+      }
+    },
     "telegram": {
       "enabled": true,
       "dmPolicy": "pairing",

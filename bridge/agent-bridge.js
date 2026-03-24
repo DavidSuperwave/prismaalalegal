@@ -23,6 +23,10 @@ const LEADS_CHAT_ID = process.env.TELEGRAM_LEADS_CHAT_ID || '-5107802002';
 const QUALIFIED_CHAT_ID = process.env.TELEGRAM_QUALIFIED_CHAT_ID || '-5107802002';
 const REPLIES_CHAT_ID = process.env.TELEGRAM_REPLIES_CHAT_ID || '-5052838020';
 
+// WhatsApp (via OpenClaw native channel)
+const WHATSAPP_OPERATOR_PHONE = process.env.WHATSAPP_OPERATOR_PHONE;
+const OPENCLAW_URL = process.env.OPENCLAW_URL || 'http://openclaw:18789';
+
 const POLL_INTERVAL_MS = 5000;
 
 // State tracking
@@ -63,6 +67,24 @@ async function sendTelegramMessage(botToken, chatId, text) {
   }
 }
 
+async function sendWhatsAppNotification(text) {
+  if (!WHATSAPP_OPERATOR_PHONE) return;
+  try {
+    await fetch(`${OPENCLAW_URL}/api/sessions/send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        agentId: 'operator',
+        channel: 'whatsapp',
+        peer: WHATSAPP_OPERATOR_PHONE,
+        message: text,
+      }),
+    });
+  } catch (e) {
+    console.error('[Bridge] WhatsApp notify error:', e.message);
+  }
+}
+
 async function notifyAgents(contactName, messageText, conversationId, leadStatus) {
   const status = leadStatus || 'new';
   const preview = messageText.length > 200 ? `${messageText.slice(0, 200)}...` : messageText;
@@ -99,13 +121,16 @@ async function notifyAgents(contactName, messageText, conversationId, leadStatus
 
   console.log(`[Bridge] Sending to ${groupName} (${chatId}) for ${contactName}`);
   const success = await sendTelegramMessage(botToken, chatId, text);
-  
+
   if (success) {
     console.log(`[Bridge] ✓ Notification sent to ${groupName} for ${contactName}`);
   } else {
     console.log(`[Bridge] ✗ Failed to send to ${groupName}`);
   }
-  
+
+  // Also notify via WhatsApp (independent — failure doesn't affect Telegram)
+  await sendWhatsAppNotification(text);
+
   return success;
 }
 

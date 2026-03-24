@@ -24,6 +24,10 @@ const {
 
 const TELEGRAM_QUALIFIED_BOT_TOKEN = TELEGRAM_BOT_TOKEN_QUALIFIED || TELEGRAM_BOT_TOKEN;
 
+// WhatsApp (via OpenClaw native channel)
+const WHATSAPP_OPERATOR_PHONE = process.env.WHATSAPP_OPERATOR_PHONE;
+const OPENCLAW_URL = process.env.OPENCLAW_URL || 'http://openclaw:18789';
+
 app.get("/health", async (req, res) => {
   const checks = {
     status: "ok",
@@ -48,6 +52,24 @@ app.get("/health", async (req, res) => {
 
   res.json(checks);
 });
+
+async function sendWhatsAppNotification(text) {
+  if (!WHATSAPP_OPERATOR_PHONE) return;
+  try {
+    await fetch(`${OPENCLAW_URL}/api/sessions/send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        agentId: 'operator',
+        channel: 'whatsapp',
+        peer: WHATSAPP_OPERATOR_PHONE,
+        message: text,
+      }),
+    });
+  } catch (e) {
+    console.error('[Bridge] WhatsApp notify error:', e.message);
+  }
+}
 
 async function notifyTelegramQualified(name, phone, reason) {
   if (!TELEGRAM_QUALIFIED_BOT_TOKEN || !TELEGRAM_LEADS_CHAT_ID) return;
@@ -109,7 +131,12 @@ app.post("/manychat/webhook", async (req, res) => {
 app.post("/manychat/qualify", async (req, res) => {
   try {
     const { reason, contact_info } = req.body || {};
-    await notifyTelegramQualified(contact_info?.name || "Unknown", contact_info?.phone, reason || "Qualified");
+    const name = contact_info?.name || "Unknown";
+    const phone = contact_info?.phone;
+    await notifyTelegramQualified(name, phone, reason || "Qualified");
+    await sendWhatsAppNotification(
+      `🔥 QUALIFIED LEAD\n\nName: ${name}\nPhone: ${phone || "N/A"}\nReason: ${reason || "Qualified"}`
+    );
     res.json({ status: "ok" });
   } catch (error) {
     console.error("Qualify bridge error:", error.message);

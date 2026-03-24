@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getDb, nowIsoString } from "@/lib/db";
 import { TAGS, searchMemory, addSupermemoryDocument } from "@/lib/supermemory";
 import { callOpenClaw, sendToAgent } from "@/lib/openclaw-client";
+import { notifyOperator } from "@/lib/notifier";
 
 // ============================================================
 // Conversation Handler with external_message_callback
@@ -20,9 +21,6 @@ import { callOpenClaw, sendToAgent } from "@/lib/openclaw-client";
 // ============================================================
 
 const WEBHOOK_SECRET = process.env.MANYCHAT_WEBHOOK_SECRET;
-const TELEGRAM_BOT_TOKEN_LEADS =
-  process.env.TELEGRAM_BOT_TOKEN_LEADS || process.env.TELEGRAM_BOT_TOKEN;
-const TELEGRAM_LEADS_CHAT_ID = process.env.TELEGRAM_LEADS_CHAT_ID;
 const SUPERMEMORY_API_KEY = process.env.SUPERMEMORY_API_KEY;
 
 // Confidence thresholds
@@ -333,8 +331,6 @@ async function notifyOperatorEscalation(
   draft?: string,
   escalationAnalysis?: string
 ) {
-  if (!TELEGRAM_BOT_TOKEN_LEADS || !TELEGRAM_LEADS_CHAT_ID) return;
-
   const emoji = confidence >= DRAFT_THRESHOLD ? "🟡" : confidence > 0 ? "🔴" : "⚫";
   const reasonText = {
     low_confidence: "Baja confianza — necesita revisión humana",
@@ -361,22 +357,7 @@ async function notifyOperatorEscalation(
     text += `\n\n👉 Responde desde el Inbox web o usa /draft`;
   }
 
-  try {
-    await fetch(
-      `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN_LEADS}/sendMessage`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chat_id: TELEGRAM_LEADS_CHAT_ID,
-          text,
-          parse_mode: "Markdown",
-        }),
-      }
-    );
-  } catch (error) {
-    console.error("[Conversation] Telegram notification failed:", error);
-  }
+  await notifyOperator(text, { parseMode: "Markdown" });
 }
 
 // ============================================================
