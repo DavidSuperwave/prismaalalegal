@@ -26,6 +26,13 @@ jobs:
         mkdir -p ~/.ssh
         ssh-keyscan -H 157.245.116.140 >> ~/.ssh/known_hosts
         
+    - name: Ensure env vars on Droplet
+      run: |
+        ssh root@157.245.116.140 '
+          grep -q "MANYCHAT_CALLBACK_URL" /root/prismaalalegal/.env || \
+            echo "MANYCHAT_CALLBACK_URL=https://alalegal.proyectoprisma.com/api/webhooks/manychat/conversation" >> /root/prismaalalegal/.env
+        '
+
     - name: Deploy to Droplet
       run: |
         ssh root@157.245.116.140 '

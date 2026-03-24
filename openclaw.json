@@ -1,87 +1,122 @@
 {
+  "meta": {
+    "lastTouchedVersion": "2026.3.7",
+    "lastTouchedAt": "2026-03-14T18:10:00.000Z"
+  },
   "agents": {
     "defaults": {
-      "model": {
-        "primary": "openrouter/moonshotai/kimi-k2.5"
-      }
+      "model": { "primary": "openrouter/moonshotai/kimi-k2.5" },
+      "compaction": { "mode": "safeguard" }
     },
     "list": [
+      { "id": "operator", "default": true, "name": "Operator Assistant", "workspace": "~/.openclaw/workspace-operator" },
+      { "id": "leads-inbox", "name": "Leads Inbox SDR", "workspace": "~/.openclaw/workspace-leads-inbox" },
+      { "id": "qualified-leads", "name": "Case Qualifier", "workspace": "~/.openclaw/workspace-qualified-leads" }
+    ]
+  },
+  "tools": {
+    "agentToAgent": { "enabled": true, "allow": ["operator", "leads-inbox", "qualified-leads"] },
+    "http": [
       {
-        "id": "operator",
-        "name": "Operator Assistant",
-        "default": true,
-        "workspace": "~/.openclaw/workspace-operator"
+        "name": "get_conversations",
+        "description": "Get list of conversations from the CRM. Use this to check for new messages that need replies.",
+        "method": "GET",
+        "baseUrl": "http://web:3000",
+        "path": "/api/inbox/conversations",
+        "headers": { "x-service-token": "${INTERNAL_SERVICE_TOKEN}" }
       },
       {
-        "id": "leads-inbox",
-        "name": "Leads Inbox SDR",
-        "workspace": "~/.openclaw/workspace-leads-inbox"
+        "name": "get_conversation_details",
+        "description": "Get full conversation history including all messages.",
+        "method": "GET",
+        "baseUrl": "http://web:3000",
+        "path": "/api/inbox/conversations/{conversation_id}/details",
+        "headers": { "x-service-token": "${INTERNAL_SERVICE_TOKEN}" }
       },
       {
-        "id": "qualified-leads",
-        "name": "Case Qualifier",
-        "workspace": "~/.openclaw/workspace-qualified-leads"
+        "name": "create_reply",
+        "description": "Create a draft reply for a conversation. Sets status to pending for operator approval.",
+        "method": "POST",
+        "baseUrl": "http://web:3000",
+        "path": "/api/inbox/replies",
+        "headers": { "Content-Type": "application/json", "x-service-token": "${INTERNAL_SERVICE_TOKEN}" },
+        "body": {
+          "conversation_id": "string - the conversation ID",
+          "final_text": "string - the reply text to send",
+          "agent_draft": "string - the original AI draft",
+          "status": "pending"
+        }
+      },
+      {
+        "name": "get_leads",
+        "description": "Get list of leads from CRM. Can filter by status.",
+        "method": "GET",
+        "baseUrl": "http://web:3000",
+        "path": "/api/crm/leads",
+        "headers": { "x-service-token": "${INTERNAL_SERVICE_TOKEN}" }
+      },
+      {
+        "name": "update_lead",
+        "description": "Update a lead's status or pipeline stage. Use for qualifying or rejecting leads.",
+        "method": "PATCH",
+        "baseUrl": "http://web:3000",
+        "path": "/api/crm/leads/{lead_id}",
+        "headers": { "Content-Type": "application/json", "x-service-token": "${INTERNAL_SERVICE_TOKEN}" },
+        "body": {
+          "status": "string - new status",
+          "pipelineStage": "string - pipeline stage"
+        }
+      },
+      {
+        "name": "training_session",
+        "description": "Manage training sessions. Use action=start to begin (with category), action=add_exchange to save a customer message + agent reply pair, action=correct to fix the last agent response, action=finish to save session to Supermemory, action=cancel to discard.",
+        "method": "POST",
+        "baseUrl": "http://web:3000",
+        "path": "/api/training",
+        "headers": { "Content-Type": "application/json", "x-service-token": "${INTERNAL_SERVICE_TOKEN}" },
+        "body": {
+          "action": "string - start|add_exchange|correct|finish|cancel",
+          "category": "string - optional, for start action (e.g. negativa_aseguradora, accidente_mortal)",
+          "customer_message": "string - optional, for add_exchange",
+          "agent_reply": "string - optional, for add_exchange",
+          "corrected_text": "string - optional, for correct action",
+          "index": "number - optional, for correct action (defaults to last agent message)"
+        }
+      },
+      {
+        "name": "training_status",
+        "description": "Check if there is an active training session and its current state (category, exchange count, corrections count).",
+        "method": "GET",
+        "baseUrl": "http://web:3000",
+        "path": "/api/training",
+        "headers": { "x-service-token": "${INTERNAL_SERVICE_TOKEN}" }
       }
     ]
   },
   "bindings": [
-    {
-      "agentId": "operator",
-      "match": {
-        "channel": "telegram",
-        "accountId": "operator"
-      }
-    },
-    {
-      "agentId": "leads-inbox",
-      "match": {
-        "channel": "telegram",
-        "accountId": "leads"
-      }
-    },
-    {
-      "agentId": "qualified-leads",
-      "match": {
-        "channel": "telegram",
-        "accountId": "qualified"
-      }
-    }
+    { "agentId": "operator", "match": { "channel": "telegram", "accountId": "operator" } },
+    { "agentId": "leads-inbox", "match": { "channel": "telegram", "accountId": "leads" } },
+    { "agentId": "qualified-leads", "match": { "channel": "telegram", "accountId": "qualified" } }
   ],
-  "tools": {
-    "agentToAgent": {
-      "enabled": true,
-      "allow": [
-        "operator",
-        "leads-inbox",
-        "qualified-leads"
-      ]
-    }
-  },
+  "commands": { "native": "auto", "nativeSkills": "auto", "restart": true, "ownerDisplay": "raw" },
   "channels": {
     "telegram": {
+      "enabled": true,
+      "dmPolicy": "pairing",
+      "groupPolicy": "open",
+      "streaming": "partial",
       "accounts": {
-        "operator": {
-          "botToken": "${TELEGRAM_BOT_TOKEN_OPERATOR}",
-          "dmPolicy": "allowlist",
-          "allowFrom": [
-            "${OPERATOR_TELEGRAM_USER_ID}"
-          ]
-        },
-        "leads": {
-          "botToken": "${TELEGRAM_BOT_TOKEN_LEADS}",
-          "dmPolicy": "allowlist",
-          "allowFrom": [
-            "${OPERATOR_TELEGRAM_USER_ID}"
-          ]
-        },
-        "qualified": {
-          "botToken": "${TELEGRAM_BOT_TOKEN_QUALIFIED}",
-          "dmPolicy": "allowlist",
-          "allowFrom": [
-            "${OPERATOR_TELEGRAM_USER_ID}"
-          ]
-        }
-      }
+        "operator": { "dmPolicy": "allowlist", "botToken": "${TELEGRAM_BOT_TOKEN_OPERATOR}", "allowFrom": ["${OPERATOR_TELEGRAM_USER_ID}"], "groupPolicy": "open", "streaming": "partial" },
+        "leads": { "dmPolicy": "allowlist", "botToken": "${TELEGRAM_BOT_TOKEN_LEADS}", "allowFrom": ["${OPERATOR_TELEGRAM_USER_ID}"], "groupPolicy": "open", "streaming": "partial" },
+        "qualified": { "dmPolicy": "allowlist", "botToken": "${TELEGRAM_BOT_TOKEN_QUALIFIED}", "allowFrom": ["${OPERATOR_TELEGRAM_USER_ID}"], "groupPolicy": "open", "streaming": "partial" }
+      },
+      "groups": { "-5190106102": {}, "-5107802002": {}, "-5052838020": {} }
     }
+  },
+  "gateway": {
+    "bind": "lan",
+    "controlUi": { "allowedOrigins": ["http://localhost:18789", "http://127.0.0.1:18789"] },
+    "auth": { "mode": "token", "token": "967e1b3fa5d5fcbc0eb163d589b6169aa7fadd560fbf1388" },
+    "http": { "endpoints": { "chatCompletions": { "enabled": true }, "responses": { "enabled": true } } }
   }
 }

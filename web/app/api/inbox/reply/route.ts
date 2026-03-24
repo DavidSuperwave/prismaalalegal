@@ -1,7 +1,14 @@
 import { NextResponse } from "next/server";
 
 import { getDb, nowIsoString } from "@/lib/db";
-import { TAGS, addSupermemoryDocument } from "@/lib/supermemory";
+import { addSupermemoryDocument } from "@/lib/supermemory";
+import {
+  learnFromConversationTurn,
+  learnFromDraftCorrection,
+  learnFromApprovedReply,
+  wasReplyEdited,
+  getLastCustomerMessage,
+} from "@/lib/learning-loop";
 
 const MANYCHAT_API_KEY = process.env.MANYCHAT_API_KEY;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN_OPERATOR || process.env.TELEGRAM_BOT_TOKEN;
@@ -16,15 +23,13 @@ function normalizeForComparison(text: string) {
 /**
  * Check if conversation was from imported/manual lead (no proper ManyChat history)
  */
-function isImportedLead(conversation: any): boolean {
-  // If last_message_at is old or null, it's likely imported
+function isImportedLead(conversation: { last_message_at: string | null }): boolean {
   if (!conversation.last_message_at) return true;
   
   const lastMessage = new Date(conversation.last_message_at).getTime();
   const now = Date.now();
   const hoursDiff = (now - lastMessage) / (1000 * 60 * 60);
   
-  // If >48 hours, consider it imported/old
   return hoursDiff > 48;
 }
 
@@ -41,7 +46,8 @@ function hoursSinceLastMessage(lastMessageAt: string | null): number {
 async function sendManyChatMessage(
   subscriberId: string,
   message: string,
-  channel: string = 'fb',
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _channel: string = 'fb',
   lastMessageAt?: string | null,
   forceAccountUpdate: boolean = false
 ): Promise<{ success: boolean; error?: string }> {
@@ -51,9 +57,6 @@ async function sendManyChatMessage(
 
   try {
     const hoursSince = hoursSinceLastMessage(lastMessageAt || null);
-    
-    // ALWAYS use message_tag for imported/manual leads
-    // This bypasses the 24-hour window restriction
     const messageTag = (hoursSince > 23 || forceAccountUpdate) ? "ACCOUNT_UPDATE" : undefined;
     
     console.log(`[ManyChat] Sending to ${subscriberId}. Hours since: ${hoursSince.toFixed(1)}. Tag: ${messageTag || 'none'}. Force: ${forceAccountUpdate}`);
@@ -136,7 +139,7 @@ export async function POST(request: Request) {
       message?: string;
       originalDraft?: string;
       subscriber_id?: string;
-      forceAccountUpdate?: boolean; // NEW: Force message_tag for imported leads
+      forceAccountUpdate?: boolean;
     };
 
     const conversationId = body.conversationId?.trim() || body.conversation_id?.trim();
@@ -193,9 +196,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Check if this is an imported lead (manual import, no live webhook history)
     const isImported = isImportedLead(conversation);
-    console.log(`[Reply] Conversation ${conversationId}: isImported=${isImported}, forceUpdate=${forceAccountUpdate}`);
 
     let sendResult: { success: boolean; error?: string } = { success: false, error: "Unsupported source" };
     
@@ -204,7 +205,6 @@ export async function POST(request: Request) {
       if (!subscriberId) {
         sendResult = { success: false, error: "Missing ManyChat subscriber id" };
       } else {
-        // Use message_tag for imported leads or if forced
         const useForceTag = forceAccountUpdate || isImported;
         sendResult = await sendManyChatMessage(
           subscriberId, 
@@ -275,7 +275,47 @@ export async function POST(request: Request) {
       WHERE id = ?`
     ).run(message, now, conversationId);
 
-    // Track in Supermemory
+    // ---- LEARNING LOOP ----
+    const lastCustomerMsg = getLastCustomerMessage(conversationId);
+    if (lastCustomerMsg) {
+      const edited = wasReplyEdited(originalDraft || null, message);
+
+      // Always store the conversation turn in Supermemory
+      await learnFromConversationTurn({
+        conversationId,
+        contactName: conversation.contact_name,
+        customerMessage: lastCustomerMsg,
+        replyText: message,
+        channel: conversation.source,
+        wasAutoReply: false,
+        wasEdited: edited,
+      });
+
+      // If operator edited the AI draft, store the correction (highest-value signal)
+      if (edited && originalDraft) {
+        await learnFromDraftCorrection({
+          conversationId,
+          contactName: conversation.contact_name,
+          customerMessage: lastCustomerMsg,
+          originalDraft,
+          editedReply: message,
+          channel: conversation.source,
+        });
+      } else {
+        // Unedited draft or manual reply — store as approved pattern
+        await learnFromApprovedReply({
+          conversationId,
+          contactName: conversation.contact_name,
+          customerMessage: lastCustomerMsg,
+          replyText: message,
+          channel: conversation.source,
+          wasFromDraft: !!originalDraft,
+        });
+      }
+    }
+    // ---- END LEARNING LOOP ----
+
+    // Legacy Supermemory write (kept for backward compat with existing container tags)
     try {
       await addSupermemoryDocument({
         content: `[Agente]: ${message}`,
