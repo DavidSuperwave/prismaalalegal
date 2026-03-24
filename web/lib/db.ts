@@ -94,6 +94,22 @@ function initializeSchema(database: Database.Database) {
     CREATE INDEX IF NOT EXISTS idx_messages_conversation_id ON messages(conversation_id, timestamp ASC);
     CREATE INDEX IF NOT EXISTS idx_replies_conversation ON replies(conversation_id);
     CREATE INDEX IF NOT EXISTS idx_replies_status ON replies(status);
+
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+
+    INSERT OR IGNORE INTO settings (key, value) VALUES ('reply_mode', 'manual');
+
+    CREATE TABLE IF NOT EXISTS guidance (
+      id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+      content TEXT NOT NULL,
+      category TEXT,
+      supermemory_custom_id TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
   `);
 
   try {

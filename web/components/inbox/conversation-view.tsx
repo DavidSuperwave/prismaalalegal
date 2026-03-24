@@ -14,6 +14,11 @@ export interface ConversationMessage {
   content: string;
   channel: "manychat" | "telegram" | "web";
   timestamp: string;
+  metadata?: {
+    auto_reply?: boolean;
+    confidence?: number;
+    [key: string]: unknown;
+  };
 }
 
 export interface ConversationDetail {
@@ -28,10 +33,12 @@ export interface ConversationDetail {
 
 export function ConversationView({
   conversation,
+  pendingDraft,
   onReplySent,
   onStatusChanged,
 }: {
   conversation: ConversationDetail | null;
+  pendingDraft?: string | null;
   onReplySent?: () => void;
   onStatusChanged?: () => void;
 }) {
@@ -135,11 +142,16 @@ export function ConversationView({
                 <div className="mb-1 flex items-center gap-2 text-xs opacity-80">
                   <span className="font-medium">
                     {message.sender === "human"
-                      ? "👤 Tú"
+                      ? "Tú"
                       : message.sender === "agent"
-                        ? "🤖 Agente"
+                        ? "Agente"
                         : conversation.contactName}
                   </span>
+                  {message.sender === "agent" && message.metadata?.auto_reply && (
+                    <span className="rounded-full bg-white/20 px-1.5 py-0.5 text-[10px] font-semibold">
+                      Auto {message.metadata.confidence ? `${Math.round(message.metadata.confidence * 100)}%` : ""}
+                    </span>
+                  )}
                   <span>{new Date(message.timestamp).toLocaleString()}</span>
                   <span className="uppercase">{message.channel}</span>
                 </div>
@@ -167,6 +179,7 @@ export function ConversationView({
             conversationId={conversation.id}
             contactName={conversation.contactName}
             isArchived={isArchived}
+            pendingDraft={pendingDraft}
             onReplySent={onReplySent}
           />
         )}

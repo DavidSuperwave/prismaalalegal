@@ -71,7 +71,7 @@ app.post("/manychat/webhook", async (req, res) => {
 
     // Primary path: keep business logic centralized in web app.
     try {
-      const webResponse = await fetch(`${WEB_APP_INTERNAL_URL}/api/webhooks/manychat`, {
+      const webResponse = await fetch(`${WEB_APP_INTERNAL_URL}/api/webhooks/manychat/conversation`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

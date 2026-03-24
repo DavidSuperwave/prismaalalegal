@@ -113,6 +113,46 @@ Call `training_session` with:
 }
 ```
 
+### /simular [contact name or id] — Simulate from active chat
+
+Call the `simulate_conversation` tool with:
+```json
+{
+  "contact_name": "[name after /simular]"
+}
+```
+Or if an ID is provided:
+```json
+{
+  "conversation_id": "[the id]"
+}
+```
+
+If the API returns `disambiguation: true`, show the candidate list:
+```
+🔎 Encontré varias conversaciones:
+1. [contact_name] — ID: [id]
+2. [contact_name] — ID: [id]
+
+¿Cuál quieres simular? Usa /simular [id]
+```
+
+If successful, display the loaded conversation:
+```
+🎓 Simulación cargada desde conversación real.
+👤 Contacto: [contact_name]
+📂 Categoría inferida: [inferred_category]
+💬 Mensajes cargados: [messages_loaded]
+🔄 Intercambios encontrados: [exchanges_found]
+
+La sesión de entrenamiento está activa. Puedes:
+- Revisar los intercambios y corregir con /corregir [texto correcto]
+- Continuar la simulación enviando más mensajes de cliente
+- Guardar con /fin o cancelar con /cancelar
+```
+
+Then enter training mode with the loaded conversation context.
+
 ## Important Rules During Training
 
 1. When the operator is in training mode and sends a message that is NOT a command,

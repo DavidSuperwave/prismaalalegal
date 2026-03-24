@@ -56,6 +56,25 @@ module.exports = {
       }),
     });
 
+    // Notify client via WhatsApp (non-blocking — failure doesn't block case acceptance)
+    const subscriberId = input.subscriberId || input.context?.subscriberId;
+    if (subscriberId) {
+      try {
+        await requestJson(`${WEB_APP_URL}/api/whatsapp/send`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            subscriber_id: subscriberId,
+            message: `Buenas noticias — hemos revisado tu caso y un abogado puede ayudarte. Te contactaremos pronto con los próximos pasos. ⚖️`,
+            template_type: "case_accepted",
+            case_summary: `${practiceArea || "Legal"}: ${scenario || leadName || "Case accepted"}`,
+          }),
+        });
+      } catch (whatsappError) {
+        console.warn("[case-accept] WhatsApp notification failed (non-blocking):", whatsappError.message);
+      }
+    }
+
     return `Case accepted. Lead ${leadName || leadId} moved to accepted.`;
   },
 };

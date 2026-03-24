@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getDb, nowIsoString } from "@/lib/db";
 import { TAGS, searchMemory, addSupermemoryDocument } from "@/lib/supermemory";
-import { callOpenClaw } from "@/lib/openclaw-client";
+import { callOpenClaw, sendToAgent } from "@/lib/openclaw-client";
 
 // ============================================================
 // Conversation Handler with external_message_callback
@@ -33,6 +33,22 @@ const DRAFT_THRESHOLD = 0.50;
 const CALLBACK_BASE_URL =
   process.env.MANYCHAT_CALLBACK_URL ||
   `https://${process.env.DOMAIN}/api/webhooks/manychat/conversation`;
+
+// ============================================================
+// SETTINGS HELPER
+// ============================================================
+
+function getReplyMode(): "auto" | "manual" {
+  try {
+    const db = getDb();
+    const row = db.prepare("SELECT value FROM settings WHERE key = 'reply_mode'").get() as
+      | { value: string }
+      | undefined;
+    return (row?.value === "auto" ? "auto" : "manual");
+  } catch {
+    return "manual";
+  }
+}
 
 const ACTIVE_CONVO_TIMEOUT = 600; // 10 min during active convo
 const IDLE_CONVO_TIMEOUT = 86400; // 24h max
@@ -75,17 +91,32 @@ async function searchForSimilarConversations(messageText: string) {
     confidence: 0,
     matchedPatterns: [] as string[],
     matchedConversations: [] as string[],
+    matchedGuidance: [] as string[],
     topCategory: null as string | null,
   };
 
   try {
-    // Search approved reply patterns
-    const patternResults = (await searchMemory(
-      messageText,
-      TAGS.SHARED,
-      { AND: [{ key: "type", value: "approved_reply" }] },
-      5
-    )) as SearchResult;
+    // Parallel search: patterns, conversations, and operator guidance
+    const [patternResults, convoResults, guidanceResults] = await Promise.all([
+      searchMemory(
+        messageText,
+        TAGS.SHARED,
+        { AND: [{ key: "type", value: "approved_reply" }] },
+        5
+      ) as Promise<SearchResult>,
+      searchMemory(
+        messageText,
+        TAGS.SHARED,
+        undefined,
+        5
+      ) as Promise<SearchResult>,
+      searchMemory(
+        messageText,
+        TAGS.SHARED,
+        { AND: [{ key: "type", value: "operator_guidance" }] },
+        3
+      ) as Promise<SearchResult>,
+    ]);
 
     const patterns = patternResults?.results || [];
     if (patterns.length > 0 && patterns[0].score) {
@@ -103,14 +134,6 @@ async function searchForSimilarConversations(messageText: string) {
         .filter(Boolean);
     }
 
-    // Search real + training conversations
-    const convoResults = (await searchMemory(
-      messageText,
-      TAGS.SHARED,
-      undefined,
-      5
-    )) as SearchResult;
-
     const convos = convoResults?.results || [];
     if (convos.length > 0 && convos[0].score) {
       result.confidence = Math.max(result.confidence, convos[0].score);
@@ -122,6 +145,20 @@ async function searchForSimilarConversations(messageText: string) {
             .map((ch) => ch.content)
             .join("\n");
           return chunkContent || c.content || "";
+        })
+        .filter(Boolean);
+    }
+
+    const guidance = guidanceResults?.results || [];
+    if (guidance.length > 0) {
+      result.matchedGuidance = guidance
+        .filter((g) => g.score >= 0.3)
+        .map((g) => {
+          const chunkContent = g.chunks
+            ?.filter((ch) => ch.isRelevant)
+            .map((ch) => ch.content)
+            .join("\n");
+          return chunkContent || g.content || "";
         })
         .filter(Boolean);
     }
@@ -144,9 +181,15 @@ async function generateReply(
   memoryContext: {
     matchedPatterns: string[];
     matchedConversations: string[];
+    matchedGuidance?: string[];
     topCategory: string | null;
   }
 ): Promise<string | null> {
+  const guidanceBlock =
+    memoryContext.matchedGuidance && memoryContext.matchedGuidance.length > 0
+      ? `\n\nGUÍA DEL OPERADOR (ALTA PRIORIDAD — sigue estas instrucciones):\n${memoryContext.matchedGuidance.join("\n---\n")}`
+      : "";
+
   const patternsBlock =
     memoryContext.matchedPatterns.length > 0
       ? `\n\nPATRONES DE RESPUESTA APROBADOS (usa estos como guía):\n${memoryContext.matchedPatterns.join("\n---\n")}`
@@ -164,11 +207,13 @@ async function generateReply(
   const prompt =
     `[AUTO-REPLY] Genera una respuesta para ${contactName}.` +
     categoryHint +
+    guidanceBlock +
     `\n\nHistorial de conversación:\n${conversationHistory}` +
     `\n\nMensaje actual del cliente: ${messageText}` +
     patternsBlock +
     convoBlock +
     `\n\nINSTRUCCIONES: Responde en español, tono profesional y cálido. ` +
+    `Si hay guía del operador relevante, síguela con prioridad. ` +
     `Sigue el patrón de respuesta aprobado si hay uno relevante. ` +
     `No des asesoría legal específica. Si el caso parece fuera de alcance, ` +
     `redirige amablemente.`;
@@ -199,13 +244,94 @@ async function generateReply(
 // TELEGRAM NOTIFICATION
 // ============================================================
 
+// ============================================================
+// SMART ESCALATION — generate reason for escalation
+// ============================================================
+
+async function generateEscalationReason(
+  contactName: string,
+  messageText: string,
+  conversationHistory: string,
+  confidence: number
+): Promise<string | null> {
+  try {
+    const prompt =
+      `[ESCALATION-ANALYSIS] Analiza por qué el agente no puede responder automáticamente a este mensaje.\n\n` +
+      `Contacto: ${contactName}\n` +
+      `Confianza: ${(confidence * 100).toFixed(0)}%\n` +
+      `Historial:\n${conversationHistory}\n` +
+      `Mensaje actual: ${messageText}\n\n` +
+      `INSTRUCCIONES: Responde en español, 1-2 oraciones máximo. Explica qué hace este caso difícil o nuevo para el agente.`;
+
+    const result = await callOpenClaw<{
+      content?: string;
+      message?: string;
+      response?: string;
+    }>("/api/message", {
+      role: "user",
+      channel: "internal",
+      content: prompt,
+      metadata: { is_escalation_analysis: true, contact_name: contactName },
+    });
+
+    if (!result.success || !result.data) return null;
+    return result.data.content || result.data.message || result.data.response || null;
+  } catch {
+    return null;
+  }
+}
+
+// ============================================================
+// CRM AUTO-STAGE HELPERS
+// ============================================================
+
+function updateLeadStageIfNew(subscriberId: string) {
+  try {
+    const db = getDb();
+    db.prepare(
+      "UPDATE leads SET status = 'contacted', updated_at = datetime('now') WHERE manychat_subscriber_id = ? AND status = 'new'"
+    ).run(subscriberId);
+  } catch (error) {
+    console.error("[Conversation] CRM auto-stage update failed:", error);
+  }
+}
+
+function triggerAutoQualifyIfReady(conversationId: string, subscriberId: string) {
+  try {
+    const db = getDb();
+
+    // Check if lead is already qualified or higher
+    const lead = db.prepare(
+      "SELECT status FROM leads WHERE manychat_subscriber_id = ? LIMIT 1"
+    ).get(subscriberId) as { status: string } | undefined;
+
+    if (lead && ["qualified", "accepted", "rejected"].includes(lead.status)) return;
+
+    // Count messages in conversation
+    const countRow = db.prepare(
+      "SELECT COUNT(*) as cnt FROM messages WHERE conversation_id = ?"
+    ).get(conversationId) as { cnt: number };
+
+    if (countRow.cnt >= 6) {
+      // Fire-and-forget qualification via agent
+      void sendToAgent("qualified-leads",
+        `Auto-qualify check: conversation ${conversationId} has ${countRow.cnt} messages. ` +
+        `Subscriber: ${subscriberId}. Review and score this lead.`
+      ).catch((err) => console.error("[Conversation] Auto-qualify trigger failed:", err));
+    }
+  } catch (error) {
+    console.error("[Conversation] Auto-qualify check failed:", error);
+  }
+}
+
 async function notifyOperatorEscalation(
   contactName: string,
   messageText: string,
   conversationId: string,
   confidence: number,
   reason: "low_confidence" | "no_match" | "draft_review",
-  draft?: string
+  draft?: string,
+  escalationAnalysis?: string
 ) {
   if (!TELEGRAM_BOT_TOKEN_LEADS || !TELEGRAM_LEADS_CHAT_ID) return;
 
@@ -223,6 +349,10 @@ async function notifyOperatorEscalation(
     `📊 *Confianza:* ${(confidence * 100).toFixed(0)}%\n` +
     `📋 *Razón:* ${reasonText}\n` +
     `🆔 *Conversación:* \`${conversationId}\``;
+
+  if (escalationAnalysis) {
+    text += `\n\n🧠 *Análisis:* ${escalationAnalysis.length > 200 ? escalationAnalysis.slice(0, 200) + "..." : escalationAnalysis}`;
+  }
 
   if (draft) {
     text += `\n\n✏️ *Borrador sugerido:*\n${draft.length > 300 ? draft.slice(0, 300) + "..." : draft}`;
@@ -508,45 +638,75 @@ export async function POST(request: Request) {
 
     const searchResult = await searchForSimilarConversations(messageText);
     const { confidence, topCategory } = searchResult;
+    const replyMode = getReplyMode();
 
     console.log(
-      `[Conversation] ${contactName} | confidence: ${(confidence * 100).toFixed(0)}% | category: ${topCategory || "unknown"} | "${messageText.slice(0, 80)}"`
+      `[Conversation] ${contactName} | confidence: ${(confidence * 100).toFixed(0)}% | category: ${topCategory || "unknown"} | mode: ${replyMode} | "${messageText.slice(0, 80)}"`
     );
 
-    // HIGH CONFIDENCE → Auto-reply
+    // HIGH CONFIDENCE → Auto-reply (or draft if manual mode)
     if (confidence >= AUTO_REPLY_THRESHOLD) {
-      const reply = await generateReply(contactName, messageText, history, searchResult);
+      if (replyMode === "auto") {
+        const reply = await generateReply(contactName, messageText, history, searchResult);
 
-      if (reply) {
-        saveMessage(conversationId, "agent", reply, channel, now, {
-          auto_reply: true,
-          confidence,
-          category: topCategory,
-        });
+        if (reply) {
+          saveMessage(conversationId, "agent", reply, channel, now, {
+            auto_reply: true,
+            confidence,
+            category: topCategory,
+          });
 
-        await storeConversationTurn(conversationId, contactName, messageText, reply, channel, true);
+          // CRM auto-stage: new → contacted
+          updateLeadStageIfNew(subscriberId);
 
-        console.log(`[Conversation] ✅ Auto-replied to ${contactName} (${(confidence * 100).toFixed(0)}%)`);
-        return NextResponse.json(buildManyChatResponse(reply, subscriberId, conversationId, true));
+          await storeConversationTurn(conversationId, contactName, messageText, reply, channel, true);
+
+          // Auto-qualify trigger after 6+ messages
+          triggerAutoQualifyIfReady(conversationId, subscriberId);
+
+          console.log(`[Conversation] ✅ Auto-replied to ${contactName} (${(confidence * 100).toFixed(0)}%)`);
+          return NextResponse.json(buildManyChatResponse(reply, subscriberId, conversationId, true));
+        }
+      } else {
+        // Manual mode: generate draft instead of auto-replying
+        const draft = await generateReply(contactName, messageText, history, searchResult);
+        if (draft) saveDraftReply(conversationId, draft, now);
+
+        await notifyOperatorEscalation(contactName, messageText, conversationId, confidence, "draft_review", draft || undefined);
+
+        console.log(`[Conversation] 🟡 Manual mode — draft for ${contactName} (${(confidence * 100).toFixed(0)}%)`);
+        return NextResponse.json(buildManyChatResponse(null, subscriberId, conversationId, false));
       }
     }
 
     // MEDIUM CONFIDENCE → Draft + escalate
     if (confidence >= DRAFT_THRESHOLD) {
-      const draft = await generateReply(contactName, messageText, history, searchResult);
+      const [draft, escalationAnalysis] = await Promise.all([
+        generateReply(contactName, messageText, history, searchResult),
+        generateEscalationReason(contactName, messageText, history, confidence),
+      ]);
       if (draft) saveDraftReply(conversationId, draft, now);
 
-      await notifyOperatorEscalation(contactName, messageText, conversationId, confidence, "draft_review", draft || undefined);
+      await notifyOperatorEscalation(contactName, messageText, conversationId, confidence, "draft_review", draft || undefined, escalationAnalysis || undefined);
 
       console.log(`[Conversation] 🟡 Draft for ${contactName} (${(confidence * 100).toFixed(0)}%)`);
       return NextResponse.json(buildManyChatResponse(null, subscriberId, conversationId, false));
     }
 
-    // LOW CONFIDENCE → Full escalation
-    await notifyOperatorEscalation(
-      contactName, messageText, conversationId, confidence,
-      confidence > 0 ? "low_confidence" : "no_match"
-    );
+    // LOW CONFIDENCE → Full escalation (smart escalation reason is fire-and-forget)
+    const escalationReasonPromise = generateEscalationReason(contactName, messageText, history, confidence);
+    escalationReasonPromise.then((analysis) => {
+      void notifyOperatorEscalation(
+        contactName, messageText, conversationId, confidence,
+        confidence > 0 ? "low_confidence" : "no_match",
+        undefined, analysis || undefined
+      );
+    }).catch(() => {
+      void notifyOperatorEscalation(
+        contactName, messageText, conversationId, confidence,
+        confidence > 0 ? "low_confidence" : "no_match"
+      );
+    });
 
     // Store even for escalations so Supermemory learns the question exists
     try {

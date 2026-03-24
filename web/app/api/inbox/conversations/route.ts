@@ -49,7 +49,9 @@ export async function GET(request: Request) {
 
   const args: string[] = [];
 
-  if (statusFilter === "active" || statusFilter === "archived") {
+  if (statusFilter === "escalated") {
+    query += ` WHERE id IN (SELECT conversation_id FROM replies WHERE status = 'pending')`;
+  } else if (statusFilter === "active" || statusFilter === "archived") {
     query += ` WHERE status = ?`;
     args.push(statusFilter);
   }

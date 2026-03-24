@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Bot, CheckCircle2, Loader2, Pencil, Send, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -10,20 +10,37 @@ interface HumanReplyComposerProps {
   conversationId: string;
   contactName: string;
   isArchived?: boolean;
+  pendingDraft?: string | null;
   onReplySent?: () => void;
 }
 
 type ComposerMode = "manual" | "agent";
 
-export function HumanReplyComposer({ conversationId, contactName, isArchived = false, onReplySent }: HumanReplyComposerProps) {
+export function HumanReplyComposer({ conversationId, contactName, isArchived = false, pendingDraft, onReplySent }: HumanReplyComposerProps) {
   const [message, setMessage] = useState("");
   const [originalDraft, setOriginalDraft] = useState<string | null>(null);
   const [mode, setMode] = useState<ComposerMode>("manual");
+  const [draftLoaded, setDraftLoaded] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [draftContext, setDraftContext] = useState("");
+
+  // Pre-fill from pending draft (agent-generated draft awaiting review)
+  useEffect(() => {
+    if (pendingDraft && !draftLoaded) {
+      setMessage(pendingDraft);
+      setOriginalDraft(pendingDraft);
+      setMode("agent");
+      setDraftLoaded(true);
+    }
+  }, [pendingDraft, draftLoaded]);
+
+  // Reset draft loaded state when conversation changes
+  useEffect(() => {
+    setDraftLoaded(false);
+  }, [conversationId]);
 
   const handleSend = async () => {
     const trimmed = message.trim();

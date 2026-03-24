@@ -10,11 +10,9 @@ import {
   getLastCustomerMessage,
 } from "@/lib/learning-loop";
 
-const MANYCHAT_API_KEY = process.env.MANYCHAT_API_KEY;
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN_OPERATOR || process.env.TELEGRAM_BOT_TOKEN;
+import { sendManyChatContent } from "@/lib/manychat";
 
-// Universal endpoint that routes to subscriber's last active channel
-const MANYCHAT_UNIVERSAL_ENDPOINT = 'https://api.manychat.com/sending/sendContent';
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN_OPERATOR || process.env.TELEGRAM_BOT_TOKEN;
 
 function normalizeForComparison(text: string) {
   return text.replace(/\s+/g, " ").trim();
@@ -25,84 +23,12 @@ function normalizeForComparison(text: string) {
  */
 function isImportedLead(conversation: { last_message_at: string | null }): boolean {
   if (!conversation.last_message_at) return true;
-  
+
   const lastMessage = new Date(conversation.last_message_at).getTime();
   const now = Date.now();
   const hoursDiff = (now - lastMessage) / (1000 * 60 * 60);
-  
+
   return hoursDiff > 48;
-}
-
-/**
- * Calculate hours since the last customer message
- */
-function hoursSinceLastMessage(lastMessageAt: string | null): number {
-  if (!lastMessageAt) return 999;
-  const lastMessage = new Date(lastMessageAt).getTime();
-  const now = Date.now();
-  return (now - lastMessage) / (1000 * 60 * 60);
-}
-
-async function sendManyChatMessage(
-  subscriberId: string,
-  message: string,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _channel: string = 'fb',
-  lastMessageAt?: string | null,
-  forceAccountUpdate: boolean = false
-): Promise<{ success: boolean; error?: string }> {
-  if (!MANYCHAT_API_KEY) {
-    return { success: false, error: "ManyChat API key not configured" };
-  }
-
-  try {
-    const hoursSince = hoursSinceLastMessage(lastMessageAt || null);
-    const messageTag = (hoursSince > 23 || forceAccountUpdate) ? "ACCOUNT_UPDATE" : undefined;
-    
-    console.log(`[ManyChat] Sending to ${subscriberId}. Hours since: ${hoursSince.toFixed(1)}. Tag: ${messageTag || 'none'}. Force: ${forceAccountUpdate}`);
-
-    const payload: Record<string, unknown> = {
-      subscriber_id: subscriberId,
-      data: {
-        version: "v2",
-        content: {
-          messages: [{ type: "text", text: message }],
-        },
-      },
-    };
-
-    if (messageTag) {
-      payload.message_tag = messageTag;
-    }
-
-    const response = await fetch(MANYCHAT_UNIVERSAL_ENDPOINT, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${MANYCHAT_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`[ManyChat] Error ${response.status}:`, errorText);
-      
-      if (response.status === 403 && errorText.includes('24')) {
-        return { success: false, error: `24-hour window expired. Try importing lead first via ManyChat dashboard.` };
-      }
-      if (response.status === 404) {
-        return { success: false, error: `Subscriber not found. Lead may need to be imported to ManyChat first.` };
-      }
-      
-      return { success: false, error: `ManyChat API error (${response.status}): ${errorText}` };
-    }
-
-    return { success: true };
-  } catch (error) {
-    console.error("[ManyChat] Exception:", error);
-    return { success: false, error: `Failed to send via ManyChat: ${String(error)}` };
-  }
 }
 
 async function sendTelegramMessage(chatId: string, message: string): Promise<{ success: boolean; error?: string }> {
@@ -206,10 +132,9 @@ export async function POST(request: Request) {
         sendResult = { success: false, error: "Missing ManyChat subscriber id" };
       } else {
         const useForceTag = forceAccountUpdate || isImported;
-        sendResult = await sendManyChatMessage(
-          subscriberId, 
-          message, 
-          conversation.channel || 'fb', 
+        sendResult = await sendManyChatContent(
+          subscriberId,
+          message,
           conversation.last_message_at,
           useForceTag
         );

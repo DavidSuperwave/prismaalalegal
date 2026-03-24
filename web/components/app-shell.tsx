@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { Bot, LogOut, Mail } from "lucide-react";
+import { BookOpen, Bot, LogOut, Mail } from "lucide-react";
 import { PipelineIcon } from "@/components/icons/pipeline-icon";
 
 import { useAuth } from "@/contexts/auth-context";
@@ -17,6 +17,7 @@ const navItems = [
   { id: "chat", label: "Agent", icon: Bot, href: "/chat" },
   { id: "crm", label: "Pipeline", icon: PipelineIcon, href: "/crm" },
   { id: "inbox", label: "Inbox", icon: Mail, href: "/inbox" },
+  { id: "guidance", label: "Reglas", icon: BookOpen, href: "/guidance" },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {

@@ -18,7 +18,7 @@ export interface ConversationThread {
   status: "active" | "archived";
 }
 
-export type StatusFilter = "active" | "archived" | "all";
+export type StatusFilter = "active" | "archived" | "escalated" | "all";
 
 interface ConversationListProps {
   search: string;
@@ -43,6 +43,7 @@ function SentimentDot({ sentiment = "neutral" }: { sentiment?: ConversationThrea
 
 const STATUS_TABS: { value: StatusFilter; label: string }[] = [
   { value: "active", label: "Activos" },
+  { value: "escalated", label: "Escalados" },
   { value: "archived", label: "Archivados" },
   { value: "all", label: "Todos" },
 ];
