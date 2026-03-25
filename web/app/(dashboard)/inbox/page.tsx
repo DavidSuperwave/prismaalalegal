@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Loader2 } from "lucide-react";
 
 import {
   ConversationList,
@@ -124,29 +123,6 @@ export default function InboxPage() {
 
   return (
     <div className="flex h-full min-h-screen flex-col">
-      {/* Mode toggle header */}
-      <div className="flex items-center justify-between border-b border-[var(--color-divider)] bg-[var(--color-surface)] px-6 py-2">
-        <span className="text-xs font-medium text-[var(--color-text-muted)]">
-          Modo de respuesta
-        </span>
-        <button
-          onClick={() => void handleToggleMode()}
-          disabled={isTogglingMode}
-          className="flex items-center gap-2 rounded-full border border-[var(--color-divider)] px-3 py-1 text-xs font-medium transition-colors hover:bg-[var(--color-surface-offset)]"
-        >
-          {isTogglingMode ? (
-            <Loader2 className="h-3 w-3 animate-spin" />
-          ) : (
-            <span
-              className={`inline-block h-2 w-2 rounded-full ${
-                replyMode === "auto" ? "bg-emerald-400" : "bg-amber-400"
-              }`}
-            />
-          )}
-          {replyMode === "auto" ? "Auto" : "Manual"}
-        </button>
-      </div>
-
       <div className="flex flex-1 min-h-0">
         <ConversationList
           search={search}
@@ -159,6 +135,9 @@ export default function InboxPage() {
             setStatusFilter(filter);
             setSelectedConversationId(null);
           }}
+          replyMode={replyMode}
+          isTogglingMode={isTogglingMode}
+          onToggleMode={() => void handleToggleMode()}
         />
         <ConversationView
           conversation={selectedConversation}

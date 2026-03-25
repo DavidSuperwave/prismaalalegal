@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { getDb, nowIsoString } from "@/lib/db";
 import { TAGS, addSupermemoryDocument } from "@/lib/supermemory";
 import { sendToAgent } from "@/lib/openclaw-client";
+import { getIntakeState, isActiveIntake, processIntakeMessage } from "@/lib/intake-processor";
+import { sendManyChatContent } from "@/lib/manychat";
 
 const WEBHOOK_SECRET = process.env.MANYCHAT_WEBHOOK_SECRET;
 const TELEGRAM_BOT_TOKEN_LEADS = process.env.TELEGRAM_BOT_TOKEN_LEADS || process.env.TELEGRAM_BOT_TOKEN;
@@ -213,6 +215,33 @@ export async function POST(request: Request) {
         message_id: body.message?.id || null,
       })
     );
+
+    // ============================================================
+    // INTAKE PIPELINE — route active intakes through smart handler
+    // ============================================================
+
+    const { stage: intakeStage } = getIntakeState(conversation.id);
+    if (isActiveIntake(intakeStage)) {
+      const intakeResult = await processIntakeMessage(
+        conversation.id, subscriber.id, contactName, subscriber.phone || null, messageText, channel
+      );
+
+      if (intakeResult?.replyText) {
+        // Send reply directly via ManyChat API (can't use callback from legacy handler)
+        const lastMsg = db.prepare(
+          "SELECT last_message_at FROM conversations WHERE id = ?"
+        ).get(conversation.id) as { last_message_at: string } | undefined;
+
+        await sendManyChatContent(subscriber.id, intakeResult.replyText, lastMsg?.last_message_at);
+
+        console.log(`[Legacy] Intake reply sent to ${contactName} | stage: ${intakeResult.nextStage}`);
+        return manyChatAck();
+      }
+    }
+
+    // ============================================================
+    // EXISTING FLOW — fire-and-forget for non-intake conversations
+    // ============================================================
 
     try {
       await addSupermemoryDocument({

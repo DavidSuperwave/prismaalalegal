@@ -148,6 +148,28 @@
           "template_type": "string - optional, 'case_accepted' or 'follow_up'",
           "case_summary": "string - optional, summary for template variable"
         }
+      },
+      {
+        "name": "case_criteria",
+        "description": "Manage case intake criteria. Actions: evaluate (assess conversation against criteria), accept (manually accept), reject (manually reject with reason), simulate (dry-run evaluation), review (return intake_data summary).",
+        "method": "POST",
+        "baseUrl": "http://web:3000",
+        "path": "/api/case-criteria",
+        "headers": { "Content-Type": "application/json", "x-service-token": "${INTERNAL_SERVICE_TOKEN}" },
+        "body": {
+          "action": "string - evaluate|accept|reject|simulate|review",
+          "conversation_id": "string - the conversation ID",
+          "reason": "string - optional, rejection reason (for reject action)",
+          "override_stage": "string - optional, target stage (for accept action)"
+        }
+      },
+      {
+        "name": "get_case_criteria",
+        "description": "Get current case qualification criteria and valid intake stages.",
+        "method": "GET",
+        "baseUrl": "http://web:3000",
+        "path": "/api/case-criteria",
+        "headers": { "x-service-token": "${INTERNAL_SERVICE_TOKEN}" }
       }
     ]
   },

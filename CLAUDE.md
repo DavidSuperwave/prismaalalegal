@@ -20,18 +20,22 @@ Prisma Legal Agent — an AI-powered legal intake system for personal injury/acc
 
 **Data flow (legacy):** ManyChat → Caddy → manychat-bridge (validates webhook secret, forwards) → web API (`/api/webhooks/manychat`) → SQLite. agent-bridge polls SQLite every 5s → Telegram notifications. Attorneys reply via Telegram commands or dashboard → ManyChat API sends to customer.
 
-**Data flow (conversation handler):** ManyChat → Caddy → web API (`/api/webhooks/manychat/conversation`) → SQLite + Supermemory search → confidence router (≥75% auto-reply via OpenClaw, ≥50% draft + escalate, <50% full escalation to Telegram) → returns ManyChat v2 response with `external_message_callback` for follow-up messages.
+**Data flow (intake pipeline — primary):** ManyChat → Caddy → web API (`/api/webhooks/manychat/conversation`) → SQLite → intake processor (`web/lib/intake-processor.ts`) checks `intake_stage` → builds stage-specific prompt → calls OpenClaw → parses structured JSON response → updates `intake_stage` + `intake_data` → returns ManyChat v2 response with `external_message_callback`. Stages: `new` → `greeting` → `exploring` → `collecting` → `requesting_contact` → `briefing` → `handed_off`. Terminal stages: `rejected`, `closed`.
 
-**Learning loop:** When replies are sent from the inbox (`/api/inbox/reply`), `web/lib/learning-loop.ts` stores the conversation turn in Supermemory v4 and saves approved reply patterns (or draft corrections) as v3 documents. This feeds back into the conversation handler's confidence scoring.
+**Data flow (confidence fallback):** For conversations that have been handed off or where the intake processor returns null, the confidence router still applies: Supermemory search → confidence scoring (≥75% auto-reply, ≥50% draft + escalate, <50% full escalation to Telegram).
+
+**Data flow (legacy handler 12h gap fix):** When ManyChat's `external_message_callback` timeout expires and falls back to the legacy handler (`/api/webhooks/manychat`), active intakes are still routed through the intake processor. Replies are sent directly via ManyChat API.
+
+**Learning loop:** When replies are sent from the inbox (`/api/inbox/reply`), `web/lib/learning-loop.ts` stores the conversation turn in Supermemory v4 and saves approved reply patterns (or draft corrections) as v3 documents. The intake processor also stores conversation turns in Supermemory for enrichment.
 
 **Three OpenClaw agents** (configured in `openclaw.json`):
 - `operator` — Direct lawyer control via Telegram DM, restricted to `OPERATOR_TELEGRAM_USER_ID`
-- `leads-inbox` — SDR that handles `/get`, `/draft`, `/sendreply`, `/train` commands
+- `leads-inbox` — Intake qualification agent; handles `/get`, `/draft`, `/sendreply`, `/train`, and `/caso-*` commands
 - `qualified-leads` — Scores leads 0-100, classifies case type (DEATH, INJURY, INSURER_DENIAL, LITIGATION)
 
 Each agent has its own workspace directory (`workspace-operator/`, `workspace-leads-inbox/`, `workspace-qualified-leads/`) with `SOUL.md`, `AGENTS.md`, `USER.md`, and `TOOLS.md`.
 
-**Database:** SQLite via better-sqlite3 with WAL journaling. Schema auto-created on first connection in `web/lib/db.ts`. Tables: `leads`, `conversations`, `messages`, `replies`, `processed_webhooks`, `training_sessions`. Shared via Docker volume `db_data` between `web` and `agent-bridge`.
+**Database:** SQLite via better-sqlite3 with WAL journaling. Schema auto-created on first connection in `web/lib/db.ts`. Tables: `leads`, `conversations` (with `intake_stage` and `intake_data` columns), `messages`, `replies`, `processed_webhooks`, `training_sessions`. Shared via Docker volume `db_data` between `web` and `agent-bridge`.
 
 **Memory:** Supermemory v3 for persistent agent memory (conversation history, contacts, decisions). Container tags follow pattern `client:alalegal:*` and `agent:prismaalalegal:*`.
 
@@ -74,9 +78,12 @@ Push to `main` triggers GitHub Actions CI/CD (`.github/workflows/deploy.yml`) wh
 - `bridge/agent-bridge.js` — SQLite polling loop → Telegram alerts
 - `workspace/skills/` — Agent JavaScript skills (telegram-alerts, supermemory, crm, templates, manychat-responder)
 - `web/lib/learning-loop.ts` — Supermemory feedback: stores conversation turns (v4) and approved reply patterns / corrections (v3)
-- `web/app/api/webhooks/manychat/conversation/route.ts` — Confidence-based conversation handler with auto-reply, draft, and escalation tiers
+- `web/lib/intake-processor.ts` — Core intake pipeline: stage prompts, processIntakeMessage(), sendCaseBrief(), stage transitions, JSON parse safety
+- `web/app/api/webhooks/manychat/conversation/route.ts` — Intake pipeline (primary) + confidence router (fallback) conversation handler
+- `web/app/api/case-criteria/route.ts` — Case criteria API: evaluate, accept, reject, simulate, review actions
 - `web/app/api/training/route.ts` — Training session API (start/add_exchange/correct/finish/cancel) called by agent via HTTP tools
 - `workspace-leads-inbox/skills/training-mode/SKILL.md` — Agent instructions for `/train` workflow
+- `workspace-leads-inbox/skills/case-criteria/SKILL.md` — Agent instructions for `/caso-*` commands
 - `Caddyfile` — Reverse proxy routing rules
 - `TENANT.md` — Slug/tag configuration that must stay aligned across workspace docs
 
@@ -89,7 +96,9 @@ Push to `main` triggers GitHub Actions CI/CD (`.github/workflows/deploy.yml`) wh
 - **Database migrations** are idempotent `ALTER TABLE` / `CREATE INDEX` wrapped in try-catch in `db.ts`, plus SQL files in `migrations/`. No migration framework.
 - **OpenClaw HTTP tools** are defined in `openclaw.json` under `tools.http[]`. Agents call these as tool invocations during conversation turns. Auth via `x-service-token` header with `INTERNAL_SERVICE_TOKEN`.
 - **Training mode:** Operator DMs `/train [category]` to the leads-inbox bot. Agent reads SKILL.md instructions and calls the training API via HTTP tools. Sessions persist in SQLite `training_sessions` table, finalized sessions are saved to Supermemory.
-- **Confidence thresholds** in the conversation handler: ≥0.75 auto-replies, ≥0.50 drafts with Telegram escalation, <0.50 full escalation. Tunable via constants in the route file.
+- **Intake pipeline** is the primary message handler. Conversations progress through deterministic stages (`new` → `greeting` → `exploring` → `collecting` → `requesting_contact` → `briefing` → `handed_off`). Case criteria: serious injury/death + insurance = accept; everything else = reject. Stage and extracted data stored in `conversations.intake_stage` / `conversations.intake_data`.
+- **Confidence thresholds** in the conversation handler (fallback for post-handoff): ≥0.75 auto-replies, ≥0.50 drafts with Telegram escalation, <0.50 full escalation. Tunable via constants in the route file.
+- **Case criteria commands** (`/caso-si`, `/caso-no`, `/caso-evaluar`, `/caso-simular`, `/casos-criterio`, `/caso-revisar`) let the operator manage intake criteria via Telegram. Defined in `workspace-leads-inbox/skills/case-criteria/SKILL.md`.
 - **Webhook idempotency** tracked via `processed_webhooks` table.
 - **ManyChat 24-hour window:** Replies outside the 24h window require `message_tag` bypass. The bridge and web API handle this automatically.
 - **Agent workspace changes:** `openclaw doctor --fix` can overwrite workspace files; re-validate after running it.

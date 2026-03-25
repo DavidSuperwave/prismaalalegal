@@ -4,6 +4,7 @@ import { getDb, nowIsoString } from "@/lib/db";
 import { TAGS, searchMemory, addSupermemoryDocument } from "@/lib/supermemory";
 import { callOpenClaw, sendToAgent } from "@/lib/openclaw-client";
 import { notifyOperator } from "@/lib/notifier";
+import { getIntakeState, isActiveIntake, processIntakeMessage } from "@/lib/intake-processor";
 
 // ============================================================
 // Conversation Handler with external_message_callback
@@ -368,7 +369,7 @@ function buildManyChatResponse(
   replyText: string | null,
   subscriberId: string,
   conversationId: string,
-  isAutoReply: boolean
+  timeoutSeconds: number = IDLE_CONVO_TIMEOUT
 ) {
   const messages: Array<{ type: string; text: string }> = [];
 
@@ -377,7 +378,7 @@ function buildManyChatResponse(
   } else {
     messages.push({
       type: "text",
-      text: "Gracias por tu mensaje. Un asesor revisará tu caso y te responderá en breve. ⚖️",
+      text: "Gracias por tu mensaje. Un asesor revisará tu caso y te responderá en breve.",
     });
   }
 
@@ -400,7 +401,7 @@ function buildManyChatResponse(
           last_input_text: "{{last_input_text}}",
           id: "{{user_id}}",
         },
-        timeout: isAutoReply ? ACTIVE_CONVO_TIMEOUT : IDLE_CONVO_TIMEOUT,
+        timeout: timeoutSeconds,
       },
     },
   };
@@ -593,9 +594,9 @@ export async function POST(request: Request) {
 
     // Idempotency
     ensureIdempotencyTable();
-    const idempotencyKey = `conv:${subscriberId}:${body.message?.id || messageText.slice(0, 50)}:${now}`;
+    const idempotencyKey = `conv:${subscriberId}:${body.message?.id || messageText.slice(0, 50)}`;
     if (!checkAndMarkProcessed(idempotencyKey, now)) {
-      return NextResponse.json(buildManyChatResponse(null, subscriberId, "", false));
+      return NextResponse.json(buildManyChatResponse(null, subscriberId, ""));
     }
 
     // Resolve conversation in DB
@@ -610,12 +611,35 @@ export async function POST(request: Request) {
       source: "conversation_handler",
     });
 
-    // Get conversation history
-    const history = getConversationHistory(conversationId);
+    // ============================================================
+    // INTAKE PIPELINE (primary path)
+    // ============================================================
+
+    const { stage: intakeStage } = getIntakeState(conversationId);
+
+    if (isActiveIntake(intakeStage)) {
+      const intakeResult = await processIntakeMessage(
+        conversationId, subscriberId, contactName, contactPhone, messageText, channel
+      );
+
+      if (intakeResult?.replyText) {
+        // CRM auto-stage: new → contacted
+        updateLeadStageIfNew(subscriberId);
+
+        console.log(`[Conversation] Intake ${contactName} | stage: ${intakeResult.nextStage} | "${messageText.slice(0, 60)}"`);
+        return NextResponse.json(
+          buildManyChatResponse(intakeResult.replyText, subscriberId, conversationId, IDLE_CONVO_TIMEOUT)
+        );
+      }
+      // If intake processor returned null (rejected/closed), fall through to confidence router
+    }
 
     // ============================================================
-    // CONFIDENCE ROUTER
+    // CONFIDENCE ROUTER (fallback for handed_off / non-intake)
     // ============================================================
+
+    // Get conversation history
+    const history = getConversationHistory(conversationId);
 
     const searchResult = await searchForSimilarConversations(messageText);
     const { confidence, topCategory } = searchResult;
@@ -645,8 +669,8 @@ export async function POST(request: Request) {
           // Auto-qualify trigger after 6+ messages
           triggerAutoQualifyIfReady(conversationId, subscriberId);
 
-          console.log(`[Conversation] ✅ Auto-replied to ${contactName} (${(confidence * 100).toFixed(0)}%)`);
-          return NextResponse.json(buildManyChatResponse(reply, subscriberId, conversationId, true));
+          console.log(`[Conversation] Auto-replied to ${contactName} (${(confidence * 100).toFixed(0)}%)`);
+          return NextResponse.json(buildManyChatResponse(reply, subscriberId, conversationId, ACTIVE_CONVO_TIMEOUT));
         }
       } else {
         // Manual mode: generate draft instead of auto-replying
@@ -655,8 +679,8 @@ export async function POST(request: Request) {
 
         await notifyOperatorEscalation(contactName, messageText, conversationId, confidence, "draft_review", draft || undefined);
 
-        console.log(`[Conversation] 🟡 Manual mode — draft for ${contactName} (${(confidence * 100).toFixed(0)}%)`);
-        return NextResponse.json(buildManyChatResponse(null, subscriberId, conversationId, false));
+        console.log(`[Conversation] Manual mode — draft for ${contactName} (${(confidence * 100).toFixed(0)}%)`);
+        return NextResponse.json(buildManyChatResponse(null, subscriberId, conversationId, IDLE_CONVO_TIMEOUT));
       }
     }
 
@@ -670,11 +694,11 @@ export async function POST(request: Request) {
 
       await notifyOperatorEscalation(contactName, messageText, conversationId, confidence, "draft_review", draft || undefined, escalationAnalysis || undefined);
 
-      console.log(`[Conversation] 🟡 Draft for ${contactName} (${(confidence * 100).toFixed(0)}%)`);
-      return NextResponse.json(buildManyChatResponse(null, subscriberId, conversationId, false));
+      console.log(`[Conversation] Draft for ${contactName} (${(confidence * 100).toFixed(0)}%)`);
+      return NextResponse.json(buildManyChatResponse(null, subscriberId, conversationId, IDLE_CONVO_TIMEOUT));
     }
 
-    // LOW CONFIDENCE → Full escalation (smart escalation reason is fire-and-forget)
+    // LOW CONFIDENCE → Full escalation
     const escalationReasonPromise = generateEscalationReason(contactName, messageText, history, confidence);
     escalationReasonPromise.then((analysis) => {
       void notifyOperatorEscalation(
@@ -707,8 +731,8 @@ export async function POST(request: Request) {
       // Non-blocking
     }
 
-    console.log(`[Conversation] 🔴 Escalated ${contactName} (${(confidence * 100).toFixed(0)}%)`);
-    return NextResponse.json(buildManyChatResponse(null, subscriberId, conversationId, false));
+    console.log(`[Conversation] Escalated ${contactName} (${(confidence * 100).toFixed(0)}%)`);
+    return NextResponse.json(buildManyChatResponse(null, subscriberId, conversationId, IDLE_CONVO_TIMEOUT));
   } catch (error) {
     console.error("[Conversation] Handler error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
@@ -718,7 +742,7 @@ export async function POST(request: Request) {
 export async function GET() {
   return NextResponse.json({
     status: "ok",
-    mode: "confidence-auto-reply",
+    mode: "intake-pipeline-with-confidence-fallback",
     thresholds: { auto_reply: AUTO_REPLY_THRESHOLD, draft: DRAFT_THRESHOLD },
     callback_url: CALLBACK_BASE_URL,
     timestamp: new Date().toISOString(),

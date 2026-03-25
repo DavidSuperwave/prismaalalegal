@@ -1,6 +1,6 @@
 "use client";
 
-import { Archive, Mail, MessageCircle, Search, Smartphone } from "lucide-react";
+import { Archive, Loader2, Mail, MessageCircle, Search, Smartphone } from "lucide-react";
 
 import { cn, formatTimeAgo } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -28,6 +28,9 @@ interface ConversationListProps {
   onSelectConversation: (conversationId: string) => void;
   statusFilter: StatusFilter;
   onStatusFilterChange: (filter: StatusFilter) => void;
+  replyMode?: "auto" | "manual";
+  isTogglingMode?: boolean;
+  onToggleMode?: () => void;
 }
 
 function SentimentDot({ sentiment = "neutral" }: { sentiment?: ConversationThread["sentiment"] }) {
@@ -56,11 +59,35 @@ export function ConversationList({
   onSelectConversation,
   statusFilter,
   onStatusFilterChange,
+  replyMode,
+  isTogglingMode,
+  onToggleMode,
 }: ConversationListProps) {
   return (
     <aside className="flex h-full w-80 flex-col border-r border-[var(--color-divider)] bg-[var(--color-surface)]">
       <div className="border-b border-[var(--color-divider)] p-4">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">Inbox</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">Inbox</h2>
+          {onToggleMode && (
+            <button
+              onClick={onToggleMode}
+              disabled={isTogglingMode}
+              className="flex items-center gap-1.5 rounded-full border border-[var(--color-divider)] px-2.5 py-1 text-xs font-medium transition-colors hover:bg-[var(--color-surface-offset)]"
+            >
+              {isTogglingMode ? (
+                <Loader2 className="h-2.5 w-2.5 animate-spin" />
+              ) : (
+                <span
+                  className={cn(
+                    "inline-block h-2 w-2 rounded-full",
+                    replyMode === "auto" ? "bg-emerald-400" : "bg-amber-400"
+                  )}
+                />
+              )}
+              {replyMode === "auto" ? "Auto" : "Manual"}
+            </button>
+          )}
+        </div>
         <div className="relative mt-3">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-faint)]" />
           <Input

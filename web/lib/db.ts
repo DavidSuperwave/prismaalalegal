@@ -126,6 +126,11 @@ function initializeSchema(database: Database.Database) {
     // Existing duplicate data can temporarily block this migration on older local DBs.
     console.warn("[DB] Could not create unique index idx_leads_subscriber_unique:", error);
   }
+
+  // Intake pipeline columns
+  try { database.exec("ALTER TABLE conversations ADD COLUMN intake_stage TEXT DEFAULT 'new'"); } catch { /* exists */ }
+  try { database.exec("ALTER TABLE conversations ADD COLUMN intake_data TEXT DEFAULT '{}'"); } catch { /* exists */ }
+  try { database.exec("CREATE INDEX IF NOT EXISTS idx_conversations_intake_stage ON conversations(intake_stage)"); } catch { /* ignore */ }
 }
 
 export function getDb() {
