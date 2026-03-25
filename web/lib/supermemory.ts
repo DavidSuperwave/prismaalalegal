@@ -4,10 +4,11 @@ import { getClientName } from "@/lib/api";
 
 const SUPERMEMORY_URL = "https://api.supermemory.ai/v3";
 
+const slug = process.env.AGENT_SLUG || "prismaalalegal";
 export const TAGS = {
-  SHARED: ["[REDACTED]_shared"],
-  LEADS: ["[REDACTED]_leads"],
-  CASES: ["[REDACTED]_cases"],
+  SHARED: [`${slug}_shared`],
+  LEADS: [`${slug}_leads`],
+  CASES: [`${slug}_cases`],
 } as const;
 
 function getHeaders() {

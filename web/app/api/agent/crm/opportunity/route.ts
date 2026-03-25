@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getDb, nowIsoString } from "@/lib/db";
-
-const AGENT_CRM_TOKEN = process.env.AGENT_CRM_TOKEN;
+import { isAuthorized, unauthorizedResponse } from "@/lib/internal-auth";
 const STAGES = ["new", "contacted", "qualified", "consultation", "retained", "closed"] as const;
 
 type Stage = (typeof STAGES)[number];
@@ -45,22 +44,6 @@ type ActionBody =
       note: string;
     };
 
-function ensureAuthorized(request: Request) {
-  if (!AGENT_CRM_TOKEN) {
-    return NextResponse.json(
-      { error: "AGENT_CRM_TOKEN is not configured" },
-      { status: 503 }
-    );
-  }
-
-  const token = request.headers.get("x-agent-crm-token");
-  if (!token || token !== AGENT_CRM_TOKEN) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  return null;
-}
-
 function isStage(value: string): value is Stage {
   return STAGES.includes(value as Stage);
 }
@@ -98,8 +81,7 @@ function resolveLeadId({
 }
 
 export async function POST(request: Request) {
-  const authError = ensureAuthorized(request);
-  if (authError) return authError;
+  if (!isAuthorized(request)) return unauthorizedResponse();
 
   const body = (await request.json()) as ActionBody;
   const db = getDb();
