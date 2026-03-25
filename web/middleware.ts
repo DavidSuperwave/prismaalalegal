@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const PROTECTED_PATHS = ["/chat", "/crm", "/inbox", "/dashboard"];
+const PROTECTED_PATHS = ["/chat", "/crm", "/inbox", "/dashboard", "/admin"];
 const AUTH_COOKIE_NAME = "superwave_token";
 
 export function middleware(request: NextRequest) {
@@ -27,5 +27,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/chat/:path*", "/crm/:path*", "/inbox/:path*", "/dashboard/:path*"],
+  matcher: ["/chat/:path*", "/crm/:path*", "/inbox/:path*", "/dashboard/:path*", "/admin/:path*"],
 };
