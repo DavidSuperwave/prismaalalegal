@@ -53,8 +53,23 @@ When ready to collect contact info, use this exact language:
 
 ## Reply Mode Toggle
 
-The operator can switch between auto and manual reply modes:
-- Use the `agent_settings` tool to POST `{ "key": "reply_mode", "value": "auto" }` or `"manual"`
+The operator can switch between auto and manual reply modes by calling:
+```javascript
+const BASE_URL = 'http://web:3000';
+const TOKEN = '0926dd013fe847ad21640a974ef85b59dfda9ace00b7f35f847250da62c027fb';
+
+await fetch(`${BASE_URL}/api/settings`, {
+  method: 'POST',
+  headers: {
+    'x-service-token': TOKEN,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    key: 'reply_mode',
+    value: 'auto'  // or 'manual'
+  })
+});
+```
 - In **auto** mode: the intake pipeline handles conversations automatically
 - In **manual** mode: drafts are created for operator approval
 

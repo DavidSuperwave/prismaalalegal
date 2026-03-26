@@ -45,6 +45,7 @@ jobs:
           docker compose build manychat-bridge
           docker compose build agent-bridge
           docker compose up -d web manychat-bridge agent-bridge openclaw
+          docker compose restart openclaw
           docker system prune -f
         '
         

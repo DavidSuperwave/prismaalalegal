@@ -10,19 +10,34 @@ and the final session is saved to Supermemory as approved training data.
 
 ## How It Works
 
-You use the HTTP training API tools to manage training sessions. All state is
+You use inline fetch() calls to the training API to manage training sessions. All state is
 persisted in the database — it survives restarts.
+
+## API Constants
+
+Use these constants for all API calls (same as SOUL.md):
+```javascript
+const BASE_URL = 'http://web:3000';
+const TOKEN = '0926dd013fe847ad21640a974ef85b59dfda9ace00b7f35f847250da62c027fb';
+```
 
 ## Commands and API Mapping
 
 ### /train [category] — Start a training session
 
-Call the `training_session` tool with:
-```json
-{
-  "action": "start",
-  "category": "negativa_aseguradora"
-}
+```javascript
+const response = await fetch(`${BASE_URL}/api/training`, {
+  method: 'POST',
+  headers: {
+    'x-service-token': TOKEN,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    action: 'start',
+    category: 'negativa_aseguradora'  // replace with actual category
+  })
+});
+const result = await response.json();
 ```
 
 Valid categories:
@@ -55,28 +70,52 @@ Instrucciones:
 
 ### When operator sends a customer message (during active session)
 
-1. First, check if there's an active session: GET `training_status`
+1. First, check if there's an active session:
+```javascript
+const statusResponse = await fetch(`${BASE_URL}/api/training`, {
+  headers: { 'x-service-token': TOKEN }
+});
+const statusData = await statusResponse.json();
+```
+
 2. If active, generate your response as if talking to a real customer
    (follow SOUL.md protocol — Spanish, warm, professional)
-3. Save the exchange: call `training_session` with:
-```json
-{
-  "action": "add_exchange",
-  "customer_message": "[what the operator said]",
-  "agent_reply": "[your response]"
-}
+
+3. Save the exchange:
+```javascript
+const response = await fetch(`${BASE_URL}/api/training`, {
+  method: 'POST',
+  headers: {
+    'x-service-token': TOKEN,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    action: 'add_exchange',
+    customer_message: '[what the operator said]',
+    agent_reply: '[your response]'
+  })
+});
+const result = await response.json();
 ```
+
 4. Show your response to the operator, followed by:
    "💡 Si esta respuesta no es correcta, usa /corregir [respuesta correcta]"
 
 ### /corregir [corrected text] — Correct last response
 
-Call `training_session` with:
-```json
-{
-  "action": "correct",
-  "corrected_text": "[the text after /corregir]"
-}
+```javascript
+const response = await fetch(`${BASE_URL}/api/training`, {
+  method: 'POST',
+  headers: {
+    'x-service-token': TOKEN,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    action: 'correct',
+    corrected_text: '[the text after /corregir]'
+  })
+});
+const result = await response.json();
 ```
 
 Respond:
@@ -87,11 +126,18 @@ Continúa la simulación o usa /fin para guardar.
 
 ### /fin — End and save the session
 
-Call `training_session` with:
-```json
-{
-  "action": "finish"
-}
+```javascript
+const response = await fetch(`${BASE_URL}/api/training`, {
+  method: 'POST',
+  headers: {
+    'x-service-token': TOKEN,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    action: 'finish'
+  })
+});
+const result = await response.json();
 ```
 
 The API saves everything to Supermemory automatically. Report the results:
@@ -106,26 +152,35 @@ El agente ahora usará estos patrones para casos similares.
 
 ### /cancelar — Cancel without saving
 
-Call `training_session` with:
-```json
-{
-  "action": "cancel"
-}
+```javascript
+const response = await fetch(`${BASE_URL}/api/training`, {
+  method: 'POST',
+  headers: {
+    'x-service-token': TOKEN,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    action: 'cancel'
+  })
+});
+const result = await response.json();
 ```
 
 ### /simular [contact name or id] — Simulate from active chat
 
-Call the `simulate_conversation` tool with:
-```json
-{
-  "contact_name": "[name after /simular]"
-}
-```
-Or if an ID is provided:
-```json
-{
-  "conversation_id": "[the id]"
-}
+```javascript
+const response = await fetch(`${BASE_URL}/api/training/simulate`, {
+  method: 'POST',
+  headers: {
+    'x-service-token': TOKEN,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    contact_name: '[name after /simular]'
+    // OR: conversation_id: '[the id]'
+  })
+});
+const result = await response.json();
 ```
 
 If the API returns `disambiguation: true`, show the candidate list:

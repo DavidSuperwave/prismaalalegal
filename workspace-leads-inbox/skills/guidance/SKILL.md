@@ -8,16 +8,31 @@ Lets the operator store permanent guidance rules that the agent follows when
 handling conversations. These rules are stored in Supermemory and are
 automatically retrieved during conversation handling based on relevance.
 
+## API Constants
+
+Use these constants for all API calls (same as SOUL.md):
+```javascript
+const BASE_URL = 'http://web:3000';
+const TOKEN = '0926dd013fe847ad21640a974ef85b59dfda9ace00b7f35f847250da62c027fb';
+```
+
 ## Commands and API Mapping
 
 ### /advise [guidance text] or /consejo [texto] — Store new guidance
 
-Call the `store_guidance` tool with:
-```json
-{
-  "content": "[the guidance text after /advise or /consejo]",
-  "category": "[inferred category or 'general']"
-}
+```javascript
+const response = await fetch(`${BASE_URL}/api/guidance`, {
+  method: 'POST',
+  headers: {
+    'x-service-token': TOKEN,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    content: '[the guidance text after /advise or /consejo]',
+    category: '[inferred category or "general"]'
+  })
+});
+const result = await response.json();
 ```
 
 Try to infer the category from the guidance content:
@@ -40,7 +55,12 @@ El agente aplicará esta regla automáticamente en conversaciones relevantes.
 
 ### /reglas — List all guidance
 
-Call the `list_guidance` tool (GET).
+```javascript
+const response = await fetch(`${BASE_URL}/api/guidance`, {
+  headers: { 'x-service-token': TOKEN }
+});
+const result = await response.json();
+```
 
 Display the results:
 ```
@@ -61,10 +81,15 @@ Usa /advise o /consejo para agregar una nueva regla.
 
 ### /borrar-regla [id] — Delete guidance by ID
 
-1. Call `list_guidance` first to verify the ID exists
-2. Call DELETE on the guidance API (note: this is done via a custom request
-   since there's no dedicated delete tool — use the store_guidance tool
-   description to guide the operator, or confirm deletion manually)
+1. First verify the ID exists by listing guidance (GET)
+2. Then delete it:
+```javascript
+const response = await fetch(`${BASE_URL}/api/guidance?id=[id]`, {
+  method: 'DELETE',
+  headers: { 'x-service-token': TOKEN }
+});
+const result = await response.json();
+```
 
 Respond:
 ```
