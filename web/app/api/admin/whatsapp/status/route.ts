@@ -44,7 +44,7 @@ export async function GET(request: Request) {
     // If 404, the WhatsApp channel might not be installed
     if (statusRes.status === 404) {
       // Check if OpenClaw is alive
-      const healthRes = await fetch(`${OPENCLAW_URL}/api/health`, {
+      const healthRes = await fetch(`${OPENCLAW_URL}/health`, {
         signal: AbortSignal.timeout(5000),
       }).catch(() => null);
 
@@ -67,7 +67,7 @@ export async function GET(request: Request) {
   } catch (err) {
     // Check if OpenClaw is reachable at all
     try {
-      const healthRes = await fetch(`${OPENCLAW_URL}/api/health`, {
+      const healthRes = await fetch(`${OPENCLAW_URL}/health`, {
         signal: AbortSignal.timeout(5000),
       });
       if (healthRes.ok) {

@@ -27,14 +27,13 @@
   "channels": {
     "whatsapp": {
       "enabled": true,
-      "dmPolicy": "allowlist",
-      "allowFrom": ["${WHATSAPP_OPERATOR_PHONE}"],
+      "dmPolicy": "open",
       "groupPolicy": "disabled",
       "sendReadReceipts": true,
       "accounts": {
         "default": {
-          "dmPolicy": "allowlist",
-          "allowFrom": ["${WHATSAPP_OPERATOR_PHONE}"],
+          "dmPolicy": "open",
+          "allowFrom": ["+5218144931436", "+529513782762"],
           "sendReadReceipts": true
         }
       }
@@ -52,6 +51,7 @@
       "groups": { "-5190106102": {}, "-5107802002": {}, "-5052838020": {} }
     }
   },
+  "health": { "enabled": false },
   "gateway": {
     "bind": "lan",
     "controlUi": { "allowedOrigins": ["http://localhost:18789", "http://127.0.0.1:18789"] },

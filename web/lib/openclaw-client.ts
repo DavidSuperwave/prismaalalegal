@@ -41,7 +41,12 @@ export async function callOpenClaw<T = unknown>(
   try {
     const response = await fetch(`${OPENCLAW_URL}${endpoint}`, {
       method,
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(process.env.OPENCLAW_AUTH_TOKEN
+          ? { Authorization: `Bearer ${process.env.OPENCLAW_AUTH_TOKEN}` }
+          : {}),
+      },
       ...(payload && method !== "GET" ? { body: JSON.stringify(payload) } : {}),
       signal: controller.signal,
     });
@@ -96,30 +101,52 @@ export async function callOpenClaw<T = unknown>(
   }
 }
 
+export async function chatWithAgent(
+  agentId: string,
+  prompt: string,
+  context?: { conversationId?: string }
+): Promise<OpenClawResponse<{ content: string }>> {
+  const result = await callOpenClaw<{
+    choices?: Array<{ message?: { content?: string } }>;
+    // Legacy fallback fields
+    content?: string;
+    message?: string;
+    response?: string;
+  }>("/v1/chat/completions", {
+    model: agentId,
+    messages: [{ role: "user", content: prompt }],
+  }, {
+    agentId,
+    conversationId: context?.conversationId,
+    method: "POST",
+  });
+
+  if (result.success && result.data) {
+    // OpenAI format
+    const content =
+      result.data.choices?.[0]?.message?.content ||
+      // Legacy fallback (in case OpenClaw ever sends flat format)
+      result.data.content ||
+      result.data.message ||
+      result.data.response ||
+      "";
+    return { ...result, data: { content } };
+  }
+  return result as OpenClawResponse<{ content: string }>;
+}
+
 export async function sendToAgent(agentId: string, message: string) {
-  return callOpenClaw(
-    "/api/sessions/send",
-    { agentId, message },
-    {
-      agentId,
-      method: "POST",
-    }
-  );
+  return chatWithAgent(agentId, message);
 }
 
 export async function generateDraft(conversationId: string, context: string) {
-  return callOpenClaw(
-    "/api/sessions/send",
-    { agentId: "leads-inbox", message: `Draft a reply for conversation ${conversationId}. Context: ${context}` },
-    { conversationId, agentId: "leads-inbox", method: "POST" }
+  return chatWithAgent("leads-inbox",
+    `Draft a reply for conversation ${conversationId}. Context: ${context}`,
+    { conversationId }
   );
 }
 
 export async function checkOpenClawHealth(): Promise<{ available: boolean; latencyMs: number }> {
-  const primary = await callOpenClaw("/api/health", undefined, { method: "GET" });
-  if (primary.success) {
-    return { available: true, latencyMs: primary.latencyMs };
-  }
-  const fallback = await callOpenClaw("/health", undefined, { method: "GET" });
-  return { available: fallback.success, latencyMs: fallback.latencyMs };
+  const result = await callOpenClaw("/health", undefined, { method: "GET" });
+  return { available: result.success, latencyMs: result.latencyMs };
 }

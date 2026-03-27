@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getDb, nowIsoString } from "@/lib/db";
 import { TAGS, searchMemory, addSupermemoryDocument } from "@/lib/supermemory";
-import { callOpenClaw, sendToAgent } from "@/lib/openclaw-client";
+import { chatWithAgent, sendToAgent } from "@/lib/openclaw-client";
 import { notifyOperator } from "@/lib/notifier";
 import { getIntakeState, isActiveIntake, processIntakeMessage } from "@/lib/intake-processor";
 
@@ -217,26 +217,11 @@ async function generateReply(
     `No des asesoría legal específica. Si el caso parece fuera de alcance, ` +
     `redirige amablemente.`;
 
-  // Uses the same callOpenClaw from web/lib/openclaw-client.ts
-  // that the draft endpoint and chat proxy already use
-  const result = await callOpenClaw<{
-    content?: string;
-    message?: string;
-    response?: string;
-  }>("/api/message", {
-    role: "user",
-    channel: "manychat",
-    content: prompt,
-    metadata: {
-      is_auto_reply: true,
-      contact_name: contactName,
-      category: memoryContext.topCategory,
-    },
-  });
+  const result = await chatWithAgent("leads-inbox", prompt);
 
   if (!result.success || !result.data) return null;
 
-  return result.data.content || result.data.message || result.data.response || null;
+  return result.data.content || null;
 }
 
 // ============================================================
@@ -262,19 +247,10 @@ async function generateEscalationReason(
       `Mensaje actual: ${messageText}\n\n` +
       `INSTRUCCIONES: Responde en español, 1-2 oraciones máximo. Explica qué hace este caso difícil o nuevo para el agente.`;
 
-    const result = await callOpenClaw<{
-      content?: string;
-      message?: string;
-      response?: string;
-    }>("/api/message", {
-      role: "user",
-      channel: "internal",
-      content: prompt,
-      metadata: { is_escalation_analysis: true, contact_name: contactName },
-    });
+    const result = await chatWithAgent("leads-inbox", prompt);
 
     if (!result.success || !result.data) return null;
-    return result.data.content || result.data.message || result.data.response || null;
+    return result.data.content || null;
   } catch {
     return null;
   }

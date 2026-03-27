@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getDb } from "@/lib/db";
-import { callOpenClaw } from "@/lib/openclaw-client";
+import { chatWithAgent } from "@/lib/openclaw-client";
 import { TAGS, searchMemory, searchSupermemory } from "@/lib/supermemory";
 
 type SupermemoryRecord = { content?: string };
@@ -126,23 +126,7 @@ export async function POST(request: Request) {
       ? `[BORRADOR CON INSTRUCCION] Contexto del operador: "${context.trim()}"\n\nHistorial:\n${messageHistory}${memoryContext}${learningsContext}${opportunityContext}\n\nGenera una respuesta para ${conversation.contact_name} siguiendo las instrucciones de SOUL.md y considerando el contexto del operador.`
       : `[BORRADOR] Historial de conversacion con ${conversation.contact_name}:\n${messageHistory}${memoryContext}${learningsContext}${opportunityContext}\n\nGenera la siguiente respuesta sugerida siguiendo las instrucciones de SOUL.md.`;
 
-    const result = await callOpenClaw<{
-      content?: string;
-      message?: string;
-      response?: string;
-    }>("/api/message", {
-      role: "user",
-      channel: "manychat",
-      content: prompt,
-      metadata: {
-        is_draft: true,
-        contact_name: conversation.contact_name,
-        conversation_id: conversationId,
-        case_type: conversation.case_type,
-        lead_status: conversation.lead_status,
-        lead_notes: conversation.lead_notes || undefined,
-      },
-    });
+    const result = await chatWithAgent("leads-inbox", prompt, { conversationId });
 
     if (!result.success || !result.data) {
       return NextResponse.json(
@@ -155,7 +139,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const draft = result.data.content || result.data.message || result.data.response;
+    const draft = result.data.content || null;
     if (!draft) {
       return NextResponse.json({ error: "OpenClaw returned empty response" }, { status: 502 });
     }

@@ -2,7 +2,7 @@ import "server-only";
 
 import { getDb, nowIsoString, parseJsonObject } from "@/lib/db";
 import { TAGS, searchMemory } from "@/lib/supermemory";
-import { callOpenClaw } from "@/lib/openclaw-client";
+import { chatWithAgent } from "@/lib/openclaw-client";
 import { notifyOperator } from "@/lib/notifier";
 
 // ============================================================
@@ -415,27 +415,14 @@ export async function processIntakeMessage(
   // 6. Build prompt and call OpenClaw
   const prompt = buildStagePrompt(currentStage, currentData, history, contactName, memoryContext);
 
-  const result = await callOpenClaw<{
-    content?: string;
-    message?: string;
-    response?: string;
-  }>("/api/message", {
-    role: "user",
-    channel: "manychat",
-    content: prompt,
-    metadata: {
-      is_intake: true,
-      intake_stage: currentStage,
-      contact_name: contactName,
-    },
-  });
+  const result = await chatWithAgent("leads-inbox", prompt, { conversationId });
 
   if (!result.success || !result.data) {
     console.error("[Intake] OpenClaw call failed:", result.error);
     return null;
   }
 
-  const rawResponse = result.data.content || result.data.message || result.data.response || "";
+  const rawResponse = result.data.content || "";
   const agentResponse = parseLLMResponse(rawResponse, currentStage);
 
   // 7. Merge extracted data

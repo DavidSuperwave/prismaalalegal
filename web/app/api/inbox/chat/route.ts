@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { getOpenClawUrl } from "@/lib/api";
+import { chatWithAgent } from "@/lib/openclaw-client";
 import { getDb } from "@/lib/db";
 
 export async function POST(request: Request) {
@@ -52,38 +52,20 @@ export async function POST(request: Request) {
     .map((entry) => `${entry.timestamp} ${entry.sender} (${entry.channel}): ${entry.content}`)
     .join("\n");
 
-  try {
-    const response = await fetch(`${getOpenClawUrl()}/api/message`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        role: "user",
-        channel: "web",
-        content: `You are reviewing the following conversation with ${conversation.contact_name} (${conversation.source}). Conversation history:\n${context}\n\nUser request: ${message}`,
-      }),
-    });
+  const promptText = `You are reviewing the following conversation with ${conversation.contact_name} (${conversation.source}). Conversation history:\n${context}\n\nUser request: ${message}`;
 
-    if (!response.ok) {
-      throw new Error(`OpenClaw request failed with ${response.status}`);
-    }
+  const result = await chatWithAgent("leads-inbox", promptText, { conversationId });
 
-    const data = (await response.json()) as {
-      content?: string;
-      message?: string;
-      response?: string;
-    };
-
-    return NextResponse.json({
-      content:
-        data.content ||
-        data.message ||
-        data.response ||
-        "I reviewed the thread but did not receive a complete reply from OpenClaw.",
-    });
-  } catch {
+  if (!result.success || !result.data) {
     return NextResponse.json({
       content:
         "OpenClaw is currently unavailable. Review the timeline above and try your inbox request again shortly.",
     });
   }
+
+  return NextResponse.json({
+    content:
+      result.data.content ||
+      "I reviewed the thread but did not receive a complete reply from OpenClaw.",
+  });
 }

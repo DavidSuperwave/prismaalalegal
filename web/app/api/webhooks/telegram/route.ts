@@ -2,11 +2,11 @@ import { NextResponse } from "next/server";
 
 import { getDb, nowIsoString } from "@/lib/db";
 import { addSupermemoryDocument } from "@/lib/supermemory";
+import { chatWithAgent } from "@/lib/openclaw-client";
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN_OPERATOR || process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_REPLIES_CHAT_ID = process.env.TELEGRAM_REPLIES_CHAT_ID;
 const MANYCHAT_API_KEY = process.env.MANYCHAT_API_KEY;
-const OPENCLAW_GATEWAY_URL = process.env.OPENCLAW_GATEWAY_URL || "[REDACTED]";
 
 interface TelegramUpdate {
   message?: {
@@ -70,36 +70,15 @@ async function sendManyChatReply(subscriberId: string, message: string): Promise
   }
 }
 
-async function getAgentResponse(message: string, context?: string): Promise<string> {
-  try {
-    const response = await fetch(`${OPENCLAW_GATEWAY_URL}/api/message`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        role: "user",
-        channel: "telegram",
-        content: message,
-        metadata: {
-          context: context || "Agent chat from Telegram",
-          is_agent_chat: true,
-        },
-      }),
-    });
+async function getAgentResponse(message: string): Promise<string> {
+  const result = await chatWithAgent("operator", message);
 
-    if (!response.ok) {
-      return "Lo siento, no pude procesar tu mensaje en este momento. Por favor intenta de nuevo más tarde.";
-    }
-
-    const data = (await response.json()) as {
-      content?: string;
-      message?: string;
-      response?: string;
-    };
-    return data.content || data.message || data.response || "No tengo una respuesta en este momento.";
-  } catch (error) {
-    console.error("OpenClaw error:", error);
-    return "Lo siento, estoy teniendo problemas técnicos. Por favor intenta de nuevo más tarde.";
+  if (!result.success || !result.data) {
+    console.error("OpenClaw error:", result.error);
+    return "Lo siento, no pude procesar tu mensaje en este momento. Por favor intenta de nuevo más tarde.";
   }
+
+  return result.data.content || "No tengo una respuesta en este momento.";
 }
 
 async function handleReplyToLead(chatId: number, text: string, replyToText?: string): Promise<void> {
@@ -213,7 +192,7 @@ async function handleAgentChat(chatId: number, text: string): Promise<void> {
     }).catch(() => undefined);
   }
 
-  const response = await getAgentResponse(text, "Agent asking for help with lead responses");
+  const response = await getAgentResponse(text);
   await sendTelegramResponse(chatId, `🤖 *Asistente:*\n\n${response}`);
 }
 
